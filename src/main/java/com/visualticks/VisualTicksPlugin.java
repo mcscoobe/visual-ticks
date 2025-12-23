@@ -174,22 +174,40 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     
     /**
      * Increments the numberOfTicksHotkeys configuration value.
-     * Maximum value is capped at 30 (as defined in the @Range annotation).
+     * If the Hotkeys configuration is disabled, enables it and sets to 2 ticks.
+     * Otherwise increments up to maximum of 30.
      */
     private void incrementNumberOfTicks() {
-        int currentValue = config.numberOfTicksHotkeys();
-        if (currentValue < 30) { // Max value from @Range annotation
-            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", currentValue + 1);
+        if (!config.isEnabledHotkeys()) {
+            // If disabled, enable it and set to minimum (2 ticks)
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledHotkeys", true);
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", 2);
+        } else {
+            // If enabled, increment up to maximum
+            int currentValue = config.numberOfTicksHotkeys();
+            if (currentValue < 30) { // Max value from @Range annotation
+                configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", currentValue + 1);
+            }
         }
     }
     
     /**
      * Decrements the numberOfTicksHotkeys configuration value.
-     * Minimum value is capped at 2 (as defined in the @Range annotation).
+     * If already at minimum (2 ticks), disables the Hotkeys configuration.
+     * Otherwise decrements down to minimum of 2.
      */
     private void decrementNumberOfTicks() {
+        if (!config.isEnabledHotkeys()) {
+            // If already disabled, do nothing
+            return;
+        }
+        
         int currentValue = config.numberOfTicksHotkeys();
-        if (currentValue > 2) { // Min value from @Range annotation
+        if (currentValue <= 2) {
+            // If at minimum, disable the configuration
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledHotkeys", false);
+        } else {
+            // Otherwise decrement normally
             configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", currentValue - 1);
         }
     }
