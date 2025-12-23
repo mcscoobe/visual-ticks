@@ -27,28 +27,6 @@ public interface VisualTicksConfig extends Config {
     default Keybind tickResetHotkey() {
         return new Keybind(KeyEvent.VK_BACK_QUOTE, KeyEvent.VK_UNDEFINED);
     }
-
-    @ConfigItem(
-            position = 1,
-            keyName = "tickIncrementHotkey",
-            name = "Tick Increment Hotkey",
-            description = "Hotkey to increment tick counter for hotkey configuration",
-            section = hotkeySettings
-    )
-    default Keybind tickIncrementHotkey() {
-        return new Keybind(KeyEvent.VK_EQUALS, KeyEvent.VK_UNDEFINED);
-    }
-
-    @ConfigItem(
-            position = 2,
-            keyName = "tickDecrementHotkey",
-            name = "Tick Decrement Hotkey",
-            description = "Hotkey to decrement tick counter for hotkey configuration",
-            section = hotkeySettings
-    )
-    default Keybind tickDecrementHotkey() {
-        return new Keybind(KeyEvent.VK_MINUS, KeyEvent.VK_UNDEFINED);
-    }
     //endregion
 
     //region Tick settings - One
@@ -828,6 +806,28 @@ public interface VisualTicksConfig extends Config {
     @Range(min = -50)
     default int verticalSpacingHotkeys() {
         return 5;
+    }
+
+    @ConfigItem(
+            position = 16,
+            keyName = "tickIncrementHotkey",
+            name = "Tick Increment Hotkey",
+            description = "Hotkey to increment number of ticks",
+            section = tickSettingsHotkeys
+    )
+    default Keybind tickIncrementHotkey() {
+        return new Keybind(KeyEvent.VK_EQUALS, KeyEvent.VK_UNDEFINED);
+    }
+
+    @ConfigItem(
+            position = 17,
+            keyName = "tickDecrementHotkey",
+            name = "Tick Decrement Hotkey",
+            description = "Hotkey to decrement number of ticks",
+            section = tickSettingsHotkeys
+    )
+    default Keybind tickDecrementHotkey() {
+        return new Keybind(KeyEvent.VK_MINUS, KeyEvent.VK_UNDEFINED);
     }
     //endregion
 }
