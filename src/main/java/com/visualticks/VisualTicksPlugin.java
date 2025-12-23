@@ -31,12 +31,15 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Inject
     private VisualTicksOverlayThree overlayThree;
     @Inject
+    private VisualTicksOverlayHotkeys overlayHotkeys;
+    @Inject
     private KeyManager keyManager;
     @Inject
     private ConfigManager configManager;
     public int tickOne = 0;
     public int tickTwo = 0;
     public int tickThree = 0;
+    public int tickHotkeys = 0;
 
     @Override
     protected void startUp() throws Exception {
@@ -50,12 +53,13 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         overlayManager.remove(overlayOne);
         overlayManager.remove(overlayTwo);
         overlayManager.remove(overlayThree);
+        overlayManager.remove(overlayHotkeys);
         keyManager.unregisterKeyListener(this);
     }
 
     @Subscribe
     private void onGameTick(GameTick gameTick) {
-        if (!config.isEnabledOne() && !config.isEnabledTwo() && !config.isEnabledThree()) {
+        if (!config.isEnabledOne() && !config.isEnabledTwo() && !config.isEnabledThree() && !config.isEnabledHotkeys()) {
             return;
         }
 
@@ -70,12 +74,29 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         if(config.isEnabledThree()) {
             tickThree = (tickThree + 1) % config.numberOfTicksThree();
         }
+
+        if(config.isEnabledHotkeys()) {
+            tickHotkeys = (tickHotkeys + 1) % config.numberOfTicksHotkeys();
+        }
     }
 
     @Subscribe
     private void onConfigChanged(ConfigChanged event) {
         if (!event.getGroup().equals(VisualTicksConfig.GROUP_NAME)) {
             return;
+        }
+
+        // Handle hotkey configuration changes
+        String key = event.getKey();
+        if (isHotkeyConfigurationKey(key)) {
+            // Re-register hotkeys with KeyManager when hotkey configs change
+            keyManager.unregisterKeyListener(this);
+            keyManager.registerKeyListener(this);
+        }
+        
+        // Handle numberOfTicks changes with proper tick value adjustment
+        if (isNumberOfTicksConfigurationKey(key)) {
+            adjustTickValuesForConfigurationChange(key);
         }
 
         updateOverlays();
@@ -85,6 +106,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         overlayManager.remove(overlayOne);
         overlayManager.remove(overlayTwo);
         overlayManager.remove(overlayThree);
+        overlayManager.remove(overlayHotkeys);
 
         if (config.isEnabledOne()) {
             overlayManager.add(overlayOne);
@@ -95,10 +117,14 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         if (config.isEnabledThree()) {
             overlayManager.add(overlayThree);
         }
+        if (config.isEnabledHotkeys()) {
+            overlayManager.add(overlayHotkeys);
+        }
 
         overlayOne.onConfigChanged();
         overlayTwo.onConfigChanged();
         overlayThree.onConfigChanged();
+        overlayHotkeys.onConfigChanged();
     }
 
     @Subscribe
@@ -118,8 +144,71 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
+        // Existing tick reset functionality
         if (config.tickResetHotkey().matches(e)) {
             resetTicks();
+            return;
+        }
+        
+        // Handle increment/decrement hotkeys for hotkey configuration only
+        handleIncrementDecrementKeys(e);
+    }
+    
+    /**
+     * Handles increment and decrement hotkey presses for the hotkey configuration.
+     * Increments/decrements the numberOfTicksHotkeys configuration value.
+     * 
+     * @param e The KeyEvent to process
+     */
+    private void handleIncrementDecrementKeys(KeyEvent e) {
+        // Hotkey configuration increment/decrement for numberOfTicks
+        if (config.tickIncrementHotkey().matches(e)) {
+            incrementNumberOfTicks();
+            return;
+        }
+        if (config.tickDecrementHotkey().matches(e)) {
+            decrementNumberOfTicks();
+            return;
+        }
+    }
+    
+    /**
+     * Increments the numberOfTicksHotkeys configuration value.
+     * If the Hotkeys configuration is disabled, enables it and sets to 2 ticks.
+     * Otherwise increments up to maximum of 30.
+     */
+    private void incrementNumberOfTicks() {
+        if (!config.isEnabledHotkeys()) {
+            // If disabled, enable it and set to minimum (2 ticks)
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledHotkeys", true);
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", 2);
+        } else {
+            // If enabled, increment up to maximum
+            int currentValue = config.numberOfTicksHotkeys();
+            if (currentValue < 30) { // Max value from @Range annotation
+                configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", currentValue + 1);
+            }
+        }
+    }
+    
+    /**
+     * Decrements the numberOfTicksHotkeys configuration value.
+     * If already at minimum (2 ticks), disables the Hotkeys configuration.
+     * Otherwise decrements down to minimum of 2.
+     */
+    private void decrementNumberOfTicks() {
+        if (!config.isEnabledHotkeys()) {
+            // If already disabled, do nothing
+            return;
+        }
+        
+        int currentValue = config.numberOfTicksHotkeys();
+        if (currentValue <= 2) {
+            // If at minimum, disable the configuration
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledHotkeys", false);
+        } else {
+            // Otherwise decrement normally
+            configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksHotkeys", currentValue - 1);
         }
     }
 
@@ -154,5 +243,139 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         tickOne = 0;
         tickTwo = 0;
         tickThree = 0;
+        tickHotkeys = 0;
+    }
+
+    /**
+     * Increments the tick count for the specified configuration.
+     * Uses modulo arithmetic to wrap around when reaching the maximum tick count.
+     * Only operates on enabled configurations.
+     * 
+     * @param configurationNumber The configuration to increment (1, 2, 3, or 4)
+     */
+    private void incrementTick(int configurationNumber) {
+        if (!isConfigurationEnabled(configurationNumber)) {
+            return;
+        }
+
+        switch (configurationNumber) {
+            case 1:
+                tickOne = (tickOne + 1) % config.numberOfTicksOne();
+                break;
+            case 2:
+                tickTwo = (tickTwo + 1) % config.numberOfTicksTwo();
+                break;
+            case 3:
+                tickThree = (tickThree + 1) % config.numberOfTicksThree();
+                break;
+            case 4:
+                tickHotkeys = (tickHotkeys + 1) % config.numberOfTicksHotkeys();
+                break;
+        }
+    }
+
+    /**
+     * Decrements the tick count for the specified configuration.
+     * Uses modulo arithmetic to wrap around when going below zero.
+     * Only operates on enabled configurations.
+     * 
+     * @param configurationNumber The configuration to decrement (1, 2, 3, or 4)
+     */
+    private void decrementTick(int configurationNumber) {
+        if (!isConfigurationEnabled(configurationNumber)) {
+            return;
+        }
+
+        switch (configurationNumber) {
+            case 1:
+                tickOne = (tickOne - 1 + config.numberOfTicksOne()) % config.numberOfTicksOne();
+                break;
+            case 2:
+                tickTwo = (tickTwo - 1 + config.numberOfTicksTwo()) % config.numberOfTicksTwo();
+                break;
+            case 3:
+                tickThree = (tickThree - 1 + config.numberOfTicksThree()) % config.numberOfTicksThree();
+                break;
+            case 4:
+                tickHotkeys = (tickHotkeys - 1 + config.numberOfTicksHotkeys()) % config.numberOfTicksHotkeys();
+                break;
+        }
+    }
+
+    /**
+     * Helper method to check if a configuration is enabled before manipulation.
+     * 
+     * @param configurationNumber The configuration to check (1, 2, 3, or 4)
+     * @return true if the configuration is enabled, false otherwise
+     */
+    private boolean isConfigurationEnabled(int configurationNumber) {
+        switch (configurationNumber) {
+            case 1:
+                return config.isEnabledOne();
+            case 2:
+                return config.isEnabledTwo();
+            case 3:
+                return config.isEnabledThree();
+            case 4:
+                return config.isEnabledHotkeys();
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Checks if the given configuration key is a hotkey configuration.
+     * 
+     * @param key The configuration key to check
+     * @return true if the key is a hotkey configuration, false otherwise
+     */
+    private boolean isHotkeyConfigurationKey(String key) {
+        return "tickResetHotkey".equals(key) || 
+               "tickIncrementHotkey".equals(key) || 
+               "tickDecrementHotkey".equals(key);
+    }
+
+    /**
+     * Checks if the given configuration key is a numberOfTicks configuration.
+     * 
+     * @param key The configuration key to check
+     * @return true if the key is a numberOfTicks configuration, false otherwise
+     */
+    private boolean isNumberOfTicksConfigurationKey(String key) {
+        return "numberOfTicksOne".equals(key) || 
+               "numberOfTicksTwo".equals(key) || 
+               "numberOfTicksThree".equals(key) || 
+               "numberOfTicksHotkeys".equals(key);
+    }
+
+    /**
+     * Adjusts tick values when numberOfTicks configuration changes.
+     * Uses modulo operation to ensure tick values remain within valid range.
+     * 
+     * @param key The configuration key that changed
+     */
+    private void adjustTickValuesForConfigurationChange(String key) {
+        switch (key) {
+            case "numberOfTicksOne":
+                if (config.numberOfTicksOne() > 0) {
+                    tickOne = tickOne % config.numberOfTicksOne();
+                }
+                break;
+            case "numberOfTicksTwo":
+                if (config.numberOfTicksTwo() > 0) {
+                    tickTwo = tickTwo % config.numberOfTicksTwo();
+                }
+                break;
+            case "numberOfTicksThree":
+                if (config.numberOfTicksThree() > 0) {
+                    tickThree = tickThree % config.numberOfTicksThree();
+                }
+                break;
+            case "numberOfTicksHotkeys":
+                if (config.numberOfTicksHotkeys() > 0) {
+                    tickHotkeys = tickHotkeys % config.numberOfTicksHotkeys();
+                }
+                break;
+        }
     }
 }

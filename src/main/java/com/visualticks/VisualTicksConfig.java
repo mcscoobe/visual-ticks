@@ -613,4 +613,221 @@ public interface VisualTicksConfig extends Config {
         return 5;
     }
     //endregion
+
+    //region Tick settings - Hotkeys
+    @ConfigSection(
+            name = "Tick settings - Hotkeys",
+            description = "Settings for the hotkey-controlled tick configuration",
+            position = 4
+    )
+    String tickSettingsHotkeys = "tickSettingsHotkeys";
+
+    @ConfigItem(
+            keyName = "isEnabledHotkeys",
+            name = "Enabled",
+            description = "Enable the hotkey-controlled tick configuration",
+            section = tickSettingsHotkeys,
+            position = 0
+    )
+    default boolean isEnabledHotkeys() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "shouldShowTickShapeHotkeys",
+            name = "Show Tick Shape",
+            description = "Show the shape of the hotkey-controlled ticks",
+            section = tickSettingsHotkeys,
+            position = 1
+    )
+    default boolean shouldShowTickShapeHotkeys() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "tickShapeHotkeys",
+            name = "Tick shape",
+            description = "The shape of the ticks",
+            section = tickSettingsHotkeys,
+            position = 2
+    )
+    default TickShape tickShapeHotkeys() {
+        return TickShape.CIRCLE;
+    }
+
+    @ConfigItem(
+            keyName = "exclusiveTabHotkeys",
+            name = "Only show if on tab",
+            description = "Show the ticks only when the selected tab is active",
+            section = tickSettingsHotkeys,
+            position = 3
+    )
+    default InterfaceTab exclusiveTabHotkeys() {
+        return InterfaceTab.ALL;
+    }
+
+    @ConfigItem(
+            keyName = "numberOfTicksHotkeys",
+            name = "Number of ticks",
+            description = "Number of tick circles to display",
+            section = tickSettingsHotkeys,
+            position = 4
+    )
+    @Range(min = 2, max = 30)
+    default int numberOfTicksHotkeys() {
+        return 2;
+    }
+
+    @ConfigItem(
+            keyName = "amountPerRowHotkeys",
+            name = "Amount per row",
+            description = "How many ticks to display per row",
+            section = tickSettingsHotkeys,
+            position = 5
+    )
+    @Range(min = 1)
+    default int amountPerRowHotkeys() {
+        return 8;
+    }
+
+    @ConfigItem(
+            keyName = "tickColourHotkeys",
+            name = "Tick colour",
+            description = "The colour of the ticks",
+            section = tickSettingsHotkeys,
+            position = 6
+    )
+    @Alpha
+    default Color tickColourHotkeys() {
+        return new Color(41, 128, 185);
+    }
+
+    @ConfigItem(
+            keyName = "currentTickColourHotkeys",
+            name = "Current tick colour",
+            description = "The colour of the current tick",
+            section = tickSettingsHotkeys,
+            position = 7
+    )
+    @Alpha
+    default Color currentTickColourHotkeys() {
+        return new Color(236, 240, 241);
+    }
+
+    @ConfigItem(
+            keyName = "sizeOfTickShapesHotkeys",
+            name = "Size of ticks",
+            description = "How many pixels to make the tick shapes",
+            section = tickSettingsHotkeys,
+            position = 8
+    )
+    default int sizeOfTickShapesHotkeys() {
+        return 32;
+    }
+
+    @ConfigItem(
+            keyName = "tickArcHotkeys",
+            name = "Tick arc(rounded square)",
+            description = "The arc of the corners of the rounded square tick shape",
+            section = tickSettingsHotkeys,
+            position = 9
+    )
+    @Range(max = 100)
+    default int tickArcHotkeys() {
+        return 10;
+    }
+
+    @ConfigItem(
+            keyName = "shouldShowTextHotkeys",
+            name = "Show text",
+            description = "Show the text of the current tick",
+            section = tickSettingsHotkeys,
+            position = 10
+    )
+    default boolean shouldShowTextHotkeys() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "tickTextSizeHotkeys",
+            name = "Tick text size",
+            description = "The size of the text on the ticks",
+            section = tickSettingsHotkeys,
+            position = 11
+    )
+    @Range(min = 1, max = 100)
+    default int tickTextSizeHotkeys() {
+        return 15;
+    }
+
+    @ConfigItem(
+            keyName = "tickTextColourHotkeys",
+            name = "Tick text colour",
+            description = "The colour of the text non-current ticks",
+            section = tickSettingsHotkeys,
+            position = 12
+    )
+    @Alpha
+    default Color tickTextColourHotkeys() {
+        return new Color(236, 240, 241);
+    }
+
+    @ConfigItem(
+            keyName = "currentTickTextColourHotkeys",
+            name = "Current tick text colour",
+            description = "The colour of the text on the current tick",
+            section = tickSettingsHotkeys,
+            position = 13
+    )
+    @Alpha
+    default Color currentTickTextColourHotkeys() {
+        return new Color(41, 128, 185);
+    }
+
+    @ConfigItem(
+            keyName = "horizontalSpacingHotkeys",
+            name = "Horizontal spacing",
+            description = "The amount of space between ticks on the x-axis",
+            section = tickSettingsHotkeys,
+            position = 14
+    )
+    @Range(min = -50)
+    default int horizontalSpacingHotkeys() {
+        return 5;
+    }
+
+    @ConfigItem(
+            keyName = "verticalSpacingHotkeys",
+            name = "Vertical spacing",
+            description = "The amount of space between ticks on the y-axis",
+            section = tickSettingsHotkeys,
+            position = 15
+    )
+    @Range(min = -50)
+    default int verticalSpacingHotkeys() {
+        return 5;
+    }
+
+    @ConfigItem(
+            position = 16,
+            keyName = "tickIncrementHotkey",
+            name = "Tick Increment Hotkey",
+            description = "Hotkey to increment number of ticks",
+            section = tickSettingsHotkeys
+    )
+    default Keybind tickIncrementHotkey() {
+        return new Keybind(KeyEvent.VK_EQUALS, KeyEvent.VK_UNDEFINED);
+    }
+
+    @ConfigItem(
+            position = 17,
+            keyName = "tickDecrementHotkey",
+            name = "Tick Decrement Hotkey",
+            description = "Hotkey to decrement number of ticks",
+            section = tickSettingsHotkeys
+    )
+    default Keybind tickDecrementHotkey() {
+        return new Keybind(KeyEvent.VK_MINUS, KeyEvent.VK_UNDEFINED);
+    }
+    //endregion
 }
