@@ -111,13 +111,18 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         }
 
         if(getExclusiveTab().getIndex() != -1 && client.getVarcIntValue(VarClientInt.INVENTORY_TAB) != getExclusiveTab().getIndex()) return null;
-        if(ticks.size() < getNumberOfTicks() - 1) return null;
+        if(ticks.size() < getNumberOfTicks()) return null;
 
         Font originalFont = graphics.getFont();
         graphics.setFont(graphics.getFont().deriveFont((float) getTickTextSize()));
 
         for (int i = 0; i < getNumberOfTicks(); i++)
         {
+            // Additional safety check to prevent IndexOutOfBoundsException
+            if (i >= ticks.size()) {
+                break;
+            }
+            
             Tick tick = ticks.get(i);
             if (shouldShowTickShape()) {
                 graphics.setColor(i == getCurrentTick() ? getCurrentTickColour() : getTickColour());
