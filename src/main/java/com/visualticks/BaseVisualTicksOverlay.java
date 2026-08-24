@@ -20,7 +20,7 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     protected VisualTicksPlugin plugin;
     protected VisualTicksConfig config;
     protected Client client;
-    protected boolean configChanged = true;
+    protected volatile boolean configChanged = true;
     protected TickSettings s;
     protected final List<Tick> ticks = new ArrayList<>();
     protected final Dimension dimension = new Dimension();
@@ -42,10 +42,10 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     protected abstract int getCurrentTick();
 
     protected void calculateSizes(Graphics2D g) {
-        configChanged = false;
         ticks.clear();
 
-        g.setFont(g.getFont().deriveFont((float) s.textSize));
+        Font originalFont = g.getFont();
+        g.setFont(originalFont.deriveFont((float) s.textSize));
         FontMetrics fm = g.getFontMetrics();
 
         int maxBoundingSize = 0;
@@ -85,18 +85,21 @@ public abstract class BaseVisualTicksOverlay extends Overlay
 
         dimension.width = (maxCol + 1) * (maxBoundingSize + s.horizontalSpacing) - s.horizontalSpacing;
         dimension.height = (maxRow + 1) * (maxBoundingSize + s.verticalSpacing) - s.verticalSpacing;
+
+        g.setFont(originalFont);
     }
 
     @Override
     public Dimension render(Graphics2D graphics)
     {
         if(configChanged) {
+            configChanged = false;
             s = readSettings();
             calculateSizes(graphics);
         }
 
         if(s.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != s.exclusiveTab.getIndex()) return null;
-        if(ticks.size() < s.numberOfTicks - 1) return null;
+        if(ticks.size() < s.numberOfTicks) return null;
 
         Font originalFont = graphics.getFont();
         graphics.setFont(graphics.getFont().deriveFont((float) s.textSize));
