@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.visualticks.config.Tick;
 import com.visualticks.config.TickSettings;
 import net.runelite.api.Client;
-import net.runelite.api.VarClientInt;
+import net.runelite.api.gameval.VarClientID;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayPosition;
 
@@ -95,7 +95,7 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             calculateSizes(graphics);
         }
 
-        if(s.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientInt.INVENTORY_TAB) != s.exclusiveTab.getIndex()) return null;
+        if(s.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != s.exclusiveTab.getIndex()) return null;
         if(ticks.size() < s.numberOfTicks - 1) return null;
 
         Font originalFont = graphics.getFont();
