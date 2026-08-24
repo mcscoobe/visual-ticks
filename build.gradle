@@ -33,10 +33,7 @@ tasks.register('runTestClient', JavaExec) {
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = 'com.visualticks.VisualTicksPluginTest'
 	args = ['--developer-mode']
-	jvmArgs = [
-			'-ea',
-			'-Drunelite.pluginhub.skip=true'
-	]
+	jvmArgs = ['-ea']
 }
 
 tasks.withType(JavaCompile) {

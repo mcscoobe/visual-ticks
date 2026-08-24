@@ -2,6 +2,7 @@ package com.visualticks;
 
 import com.google.inject.Provides;
 import net.runelite.api.events.GameTick;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
@@ -34,6 +35,8 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     private KeyManager keyManager;
     @Inject
     private ConfigManager configManager;
+    @Inject
+    private ClientThread clientThread;
 
     public final int[] ticks = new int[3];
 
@@ -108,7 +111,9 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (config.tickResetHotkey().matches(e)) {
-            Arrays.fill(ticks, 0);
+            // keyPressed runs on the AWT thread; ticks is otherwise only touched
+            // by onGameTick and overlay rendering, both on the client thread.
+            clientThread.invoke(() -> Arrays.fill(ticks, 0));
         }
     }
 

@@ -94,8 +94,14 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     {
         if(configChanged) {
             configChanged = false;
-            s = readSettings();
-            calculateSizes(graphics);
+            try {
+                s = readSettings();
+                calculateSizes(graphics);
+            } catch (RuntimeException ex) {
+                // Retry next frame rather than latching a transient failure forever.
+                configChanged = true;
+                throw ex;
+            }
         }
 
         if(s.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != s.exclusiveTab.getIndex()) return null;
