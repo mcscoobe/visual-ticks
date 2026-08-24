@@ -1,21 +1,21 @@
 package com.visualticks;
 
 import com.google.inject.Provides;
-import javax.inject.Inject;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.ProfileChanged;
+import net.runelite.client.input.KeyListener;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
-import net.runelite.client.input.KeyManager;
-import net.runelite.client.input.KeyListener;
-import java.awt.event.KeyEvent;
 
-@Slf4j
+import javax.inject.Inject;
+import java.awt.event.KeyEvent;
+import java.util.Arrays;
+
 @PluginDescriptor(
     name = "Visual Ticks"
 )
@@ -34,9 +34,8 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     private KeyManager keyManager;
     @Inject
     private ConfigManager configManager;
-    public int tickOne = 0;
-    public int tickTwo = 0;
-    public int tickThree = 0;
+
+    public final int[] ticks = new int[3];
 
     @Override
     protected void startUp() throws Exception {
@@ -47,28 +46,22 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Override
     protected void shutDown() throws Exception {
-        overlayManager.remove(overlayOne);
-        overlayManager.remove(overlayTwo);
-        overlayManager.remove(overlayThree);
+        for (BaseVisualTicksOverlay overlay : overlays()) {
+            overlayManager.remove(overlay);
+        }
         keyManager.unregisterKeyListener(this);
     }
 
     @Subscribe
     private void onGameTick(GameTick gameTick) {
-        if (!config.isEnabledOne() && !config.isEnabledTwo() && !config.isEnabledThree()) {
-            return;
+        if (config.isEnabledOne()) {
+            ticks[0] = (ticks[0] + 1) % config.numberOfTicksOne();
         }
-
-        if(config.isEnabledOne()) {
-            tickOne = (tickOne + 1) % config.numberOfTicksOne();
+        if (config.isEnabledTwo()) {
+            ticks[1] = (ticks[1] + 1) % config.numberOfTicksTwo();
         }
-
-        if(config.isEnabledTwo()) {
-            tickTwo = (tickTwo + 1) % config.numberOfTicksTwo();
-        }
-
-        if(config.isEnabledThree()) {
-            tickThree = (tickThree + 1) % config.numberOfTicksThree();
+        if (config.isEnabledThree()) {
+            ticks[2] = (ticks[2] + 1) % config.numberOfTicksThree();
         }
     }
 
@@ -81,29 +74,26 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         updateOverlays();
     }
 
-    private void updateOverlays() {
-        overlayManager.remove(overlayOne);
-        overlayManager.remove(overlayTwo);
-        overlayManager.remove(overlayThree);
-
-        if (config.isEnabledOne()) {
-            overlayManager.add(overlayOne);
-        }
-        if (config.isEnabledTwo()) {
-            overlayManager.add(overlayTwo);
-        }
-        if (config.isEnabledThree()) {
-            overlayManager.add(overlayThree);
-        }
-
-        overlayOne.onConfigChanged();
-        overlayTwo.onConfigChanged();
-        overlayThree.onConfigChanged();
-    }
-
     @Subscribe
     public void onProfileChanged(ProfileChanged profileChanged) {
         migrate();
+    }
+
+    private BaseVisualTicksOverlay[] overlays() {
+        return new BaseVisualTicksOverlay[]{overlayOne, overlayTwo, overlayThree};
+    }
+
+    private void updateOverlays() {
+        BaseVisualTicksOverlay[] overlays = overlays();
+        boolean[] enabled = {config.isEnabledOne(), config.isEnabledTwo(), config.isEnabledThree()};
+
+        for (int i = 0; i < overlays.length; i++) {
+            overlayManager.remove(overlays[i]);
+            if (enabled[i]) {
+                overlayManager.add(overlays[i]);
+            }
+            overlays[i].onConfigChanged();
+        }
     }
 
     @Provides
@@ -113,46 +103,33 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Override
     public void keyTyped(KeyEvent e) {
-        // No implementation needed
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
         if (config.tickResetHotkey().matches(e)) {
-            resetTicks();
+            Arrays.fill(ticks, 0);
         }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        // No implementation needed
     }
 
     private void migrate() {
-        String[][] migrationMap = {
-                {"paddingBetweenTicksOne", "horizontalSpacingOne,verticalSpacingOne"},
-                {"tickPaddingTwo", "horizontalSpacingTwo,verticalSpacingTwo"},
-                {"tickPaddingThree", "horizontalSpacingThree,verticalSpacingThree"}
+        String[][] moves = {
+                {"paddingBetweenTicksOne", "horizontalSpacingOne", "verticalSpacingOne"},
+                {"tickPaddingTwo", "horizontalSpacingTwo", "verticalSpacingTwo"},
+                {"tickPaddingThree", "horizontalSpacingThree", "verticalSpacingThree"}
         };
 
-        for (String[] migration : migrationMap) {
-            String oldKey = migration[0];
-            String[] newKeys = migration[1].split(",");
-
-            for (String newKey : newKeys) {
-                if (configManager.getConfiguration(VisualTicksConfig.GROUP_NAME, oldKey) != null) {
-                    String value = configManager.getConfiguration(VisualTicksConfig.GROUP_NAME, oldKey);
-                    configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, newKey, value);
-                }
+        for (String[] move : moves) {
+            String value = configManager.getConfiguration(VisualTicksConfig.GROUP_NAME, move[0]);
+            if (value != null) {
+                configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, move[1], value);
+                configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, move[2], value);
             }
-
-            configManager.unsetConfiguration(VisualTicksConfig.GROUP_NAME, oldKey);
+            configManager.unsetConfiguration(VisualTicksConfig.GROUP_NAME, move[0]);
         }
-    }
-
-    private void resetTicks() {
-        tickOne = 0;
-        tickTwo = 0;
-        tickThree = 0;
     }
 }
