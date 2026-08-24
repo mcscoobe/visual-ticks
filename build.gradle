@@ -18,7 +18,6 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok:1.18.20'
 	annotationProcessor 'org.projectlombok:lombok:1.18.20'
 
-	testImplementation 'junit:junit:4.12'
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
 }
@@ -26,6 +25,16 @@ dependencies {
 group = 'com.example'
 version = '1.0-SNAPSHOT'
 sourceCompatibility = '1.8'
+
+tasks.register('runTestClient', JavaExec) {
+	group = 'application'
+	description = 'Runs the VisualTicksPluginTest main class'
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.visualticks.VisualTicksPluginTest'
+	args = ['--developer-mode']
+	jvmArgs = ['-ea']
+}
 
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
