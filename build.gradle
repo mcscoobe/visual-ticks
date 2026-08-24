@@ -26,6 +26,19 @@ group = 'com.example'
 version = '1.0-SNAPSHOT'
 sourceCompatibility = '1.8'
 
+tasks.register('runTestClient', JavaExec) {
+	group = 'application'
+	description = 'Runs the VisualTicksPluginTest main class'
+	dependsOn testClasses
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = 'com.visualticks.VisualTicksPluginTest'
+	args = ['--developer-mode']
+	jvmArgs = [
+			'-ea',
+			'-Drunelite.pluginhub.skip=true'
+	]
+}
+
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
