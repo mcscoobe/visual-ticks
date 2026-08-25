@@ -57,14 +57,17 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Subscribe
     private void onGameTick(GameTick gameTick) {
+        // @Range only constrains the settings slider; ConfigManager hands back a stored
+        // value unvalidated, so a hand-edited or synced profile can carry 0 here and
+        // divide by zero on every tick. Clamp at the divide. See issue #7.
         if (config.isEnabledOne()) {
-            ticks[0] = (ticks[0] + 1) % config.numberOfTicksOne();
+            ticks[0] = (ticks[0] + 1) % Math.max(1, config.numberOfTicksOne());
         }
         if (config.isEnabledTwo()) {
-            ticks[1] = (ticks[1] + 1) % config.numberOfTicksTwo();
+            ticks[1] = (ticks[1] + 1) % Math.max(1, config.numberOfTicksTwo());
         }
         if (config.isEnabledThree()) {
-            ticks[2] = (ticks[2] + 1) % config.numberOfTicksThree();
+            ticks[2] = (ticks[2] + 1) % Math.max(1, config.numberOfTicksThree());
         }
     }
 

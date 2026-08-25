@@ -44,6 +44,13 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     protected void calculateSizes(Graphics2D g) {
         ticks.clear();
 
+        // Nothing to draw, so claim no space: the maths below seeds maxCol/maxRow at 0 and
+        // would report a phantom one-cell box for OverlayManager to reserve and snap to.
+        if (s.numberOfTicks <= 0) {
+            dimension.setSize(0, 0);
+            return;
+        }
+
         Font originalFont = g.getFont();
         g.setFont(originalFont.deriveFont((float) s.textSize));
         FontMetrics fm = g.getFontMetrics();
@@ -72,6 +79,10 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         int horizontalSpacing = Math.max(s.horizontalSpacing, -cellWidth);
         int verticalSpacing = Math.max(s.verticalSpacing, -cellHeight);
 
+        // A stored config value can sit outside its @Range — ConfigManager returns it
+        // unvalidated — so amountPerRow may be 0 and divide by zero below. See issue #7.
+        int amountPerRow = Math.max(1, s.amountPerRow);
+
         // The cell is sized for the widest label, so a corner-anchored shape would sit
         // adrift from the number it carries. Centre it in the cell the label centres in.
         int shapeInsetX = s.showShape ? (cellWidth - s.shapeSize) / 2 : 0;
@@ -82,8 +93,8 @@ public abstract class BaseVisualTicksOverlay extends Overlay
 
         for (int i = 0; i < s.numberOfTicks; i++)
         {
-            int row = i / s.amountPerRow;
-            int col = i % s.amountPerRow;
+            int row = i / amountPerRow;
+            int col = i % amountPerRow;
             int x = col * (cellWidth + horizontalSpacing);
             int y = row * (cellHeight + verticalSpacing);
 
