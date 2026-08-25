@@ -162,10 +162,11 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		// "10" measures 16, the widest label, so every cell is 16 at a 21px pitch
+		// "10" measures 16, the widest label, so every cell is 16 at a 21px pitch,
+		// with the 10px shape centred in it (inset 3)
 		for (int i = 0; i < 10; i++)
 		{
-			assertEquals(i * 21, overlay.ticks.get(i).shapeX);
+			assertEquals(i * 21 + 3, overlay.ticks.get(i).shapeX);
 		}
 		// and the reported width is that same pitch, so it matches the drawn content
 		assertEquals(10 * 21 - 5, size.width);
@@ -187,10 +188,11 @@ public class BaseVisualTicksOverlayTest
 
 		overlay.render(graphics);
 
-		// cell 16: "1" (8 wide) insets by 4, "10" (16 wide) fills the cell
+		// cell is 16 wide: "1" (8 wide) insets by 4, "10" (16 wide) fills it
 		assertEquals((16 - 8) / 2, overlay.ticks.get(0).fontX);
 		assertEquals(9 * 21, overlay.ticks.get(9).fontX);
-		assertEquals((16 + TEXT_ASCENT) / 2, overlay.ticks.get(0).fontY);
+		// but only 10 tall - the baseline follows the height, not the label width
+		assertEquals((10 + TEXT_ASCENT) / 2, overlay.ticks.get(0).fontY);
 	}
 
 	/**
@@ -214,14 +216,15 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		// widest label is "10".."12" at 16, so every cell is 16 and both pitches are 21
-		assertPosition(overlay.ticks.get(0), 0, 0);
-		assertPosition(overlay.ticks.get(4), 4 * 21, 0);
-		// row 2 starts back at x 0 even though it holds the two-digit labels
-		assertPosition(overlay.ticks.get(5), 0, 21);
-		assertPosition(overlay.ticks.get(9), 4 * 21, 21);
-		assertPosition(overlay.ticks.get(11), 21, 2 * 21);
-		assertEquals(new Dimension(5 * 21 - 5, 3 * 21 - 5), size);
+		// widest label is "10".."12" at 16, so cells are 16 wide (21px column pitch,
+		// shape inset 3) and 10 tall (15px row pitch)
+		assertPosition(overlay.ticks.get(0), 3, 0);
+		assertPosition(overlay.ticks.get(4), 4 * 21 + 3, 0);
+		// row 2 starts back at the same x even though it holds the two-digit labels
+		assertPosition(overlay.ticks.get(5), 3, 15);
+		assertPosition(overlay.ticks.get(9), 4 * 21 + 3, 15);
+		assertPosition(overlay.ticks.get(11), 21 + 3, 2 * 15);
+		assertEquals(new Dimension(5 * 21 - 5, 3 * 15 - 5), size);
 	}
 
 	/** Text-only: no shape to seed the cell, so the labels alone set the pitch. */
@@ -242,8 +245,11 @@ public class BaseVisualTicksOverlayTest
 		Dimension size = overlay.render(graphics);
 
 		// cell is the widest label (16), not the shape size, and still uniform
-		assertEquals(9 * 21, overlay.ticks.get(9).shapeX);
+		assertEquals((16 - 8) / 2, overlay.ticks.get(0).fontX);
+		assertEquals(9 * 21, overlay.ticks.get(9).fontX);
 		assertEquals(10 * 21 - 5, size.width);
+		// nothing but the ascent sets the height when there is no shape
+		assertEquals(TEXT_ASCENT, size.height);
 		verify(graphics, never()).fillRect(anyInt(), anyInt(), anyInt(), anyInt());
 		verify(graphics, never()).fillOval(anyInt(), anyInt(), anyInt(), anyInt());
 	}
@@ -263,10 +269,12 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		// cell is max(shape 10, ascent 30, label 8) = 30, so the pitch is 35
-		assertEquals(35, overlay.ticks.get(1).shapeX);
-		assertEquals(new Dimension(2 * 35 - 5, 30), size);
-		assertEquals((30 - TEXT_WIDTH) / 2, overlay.ticks.get(0).fontX);
+		// height is max(shape 10, ascent 30) = 30; width stays max(shape 10, label 8) = 10
+		assertEquals(new Dimension(2 * 15 - 5, 30), size);
+		// the tall cell centres the shape vertically rather than stranding it at the top
+		assertPosition(overlay.ticks.get(1), 15, (30 - 10) / 2);
+		assertEquals((10 - TEXT_WIDTH) / 2, overlay.ticks.get(0).fontX);
+		assertEquals((30 + 30) / 2, overlay.ticks.get(0).fontY);
 	}
 
 	/**
@@ -288,10 +296,82 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		// the 40px "2" sits in the middle, yet every cell is 40 at a 45px pitch
-		assertEquals(45, overlay.ticks.get(1).shapeX);
-		assertEquals(2 * 45, overlay.ticks.get(2).shapeX);
+		// the 40px "2" sits in the middle, yet every cell is 40 wide at a 45px pitch,
+		// with the 10px shape centred in it (inset 15)
+		assertEquals(45 + 15, overlay.ticks.get(1).shapeX);
+		assertEquals(2 * 45 + 15, overlay.ticks.get(2).shapeX);
 		assertEquals(3 * 45 - 5, size.width);
+	}
+
+	/**
+	 * The cell is sized for the widest label, so a corner-anchored shape drifts away
+	 * from the number it carries - the wider the widest label, the further. Shape and
+	 * label must stay concentric.
+	 */
+	@Test
+	public void shapeAndLabelShareTheSameCentre()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = 10;
+		s.amountPerRow = 10;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		overlay.render(graphics);
+
+		for (int i = 0; i < 10; i++)
+		{
+			Tick tick = overlay.ticks.get(i);
+			int labelWidth = TEXT_WIDTH * String.valueOf(i + 1).length();
+			assertEquals(
+				"tick " + (i + 1) + " label is off-centre from its shape",
+				tick.shapeX + s.shapeSize / 2,
+				tick.fontX + labelWidth / 2);
+			// and the label sits within the shape vertically rather than hanging below it
+			assertTrue(tick.fontY - TEXT_ASCENT >= tick.shapeY);
+			assertTrue(tick.fontY <= tick.shapeY + s.shapeSize);
+		}
+	}
+
+	/**
+	 * Label width is a horizontal measurement: it may widen the columns, but it must
+	 * not push the rows apart or grow the reported height.
+	 */
+	@Test
+	public void labelWidthDoesNotAffectRowPitch()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
+
+		// nine ticks: every label is one digit
+		Dimension singleDigit = overlay(varyingLabelSettings(9)).render(graphics);
+		// ten ticks: "10" is twice as wide as any label before it
+		TestOverlay wide = overlay(varyingLabelSettings(10));
+		Dimension twoDigit = wide.render(graphics);
+
+		// the extra width lands on the columns only
+		assertEquals(5 * 15 - 5, singleDigit.width);
+		assertEquals(5 * 21 - 5, twoDigit.width);
+		// while the row pitch and the height are untouched
+		assertEquals(singleDigit.height, twoDigit.height);
+		assertEquals(2 * 15 - 5, twoDigit.height);
+		assertEquals(15, wide.ticks.get(5).shapeY);
+	}
+
+	private static TickSettings varyingLabelSettings(int numberOfTicks)
+	{
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = numberOfTicks;
+		s.amountPerRow = 5;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		s.verticalSpacing = 5;
+		return s;
 	}
 
 	@Test

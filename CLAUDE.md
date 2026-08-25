@@ -7,7 +7,7 @@ optional tab restriction.
 ## Commands
 
 ```bash
-./gradlew test           # unit tests (JUnit 4 + Mockito) — 43 tests, no game client needed
+./gradlew test           # unit tests (JUnit 4 + Mockito) — 45 tests, no game client needed
 ./gradlew build          # compile + test
 ./gradlew runTestClient  # launch RuneLite with this plugin side-loaded (--developer-mode)
 ```
@@ -40,11 +40,15 @@ factories are deliberate and documented in the class javadoc: RuneLite resolves
 suffix via `ConfigManager.getConfiguration` returns null for anything the user never
 touched, losing every default. Don't "de-duplicate" them into a reflective loop.
 
-**Layout invariant (issue #5).** `calculateSizes` computes *one* cell size shared by every
-tick — the max of shape size, font ascent, and the width of every label `1..numberOfTicks`.
-Sizing each cell on its own label gives each column a different pitch (`"10"` is wider than
-`"9"`) and breaks row alignment. The reported `Dimension` deliberately excludes trailing
-spacing after the last row/column.
+**Layout invariant (issue #5).** `calculateSizes` computes one cell shared by every tick, so
+every column and row sits on a single pitch — sizing each cell on its own label gives each
+column its own pitch (`"10"` is wider than `"9"`) and breaks the grid. Width and height are
+tracked separately on purpose: `cellWidth` takes the widest label across `1..numberOfTicks`,
+while `cellHeight` considers only the shape size and font ascent, because label width is a
+horizontal measurement and must not push rows apart. Because the cell is sized for the widest
+label, `shapeInsetX/Y` re-centre the shape inside it so shape and label stay concentric
+instead of the shape drifting to the corner. The reported `Dimension` deliberately excludes
+trailing spacing after the last row/column.
 
 **Refresh path.** `updateOverlays` is the only place overlays are added to or removed from
 `OverlayManager`; it runs on `startUp` and on any `ConfigChanged` in group `visualticks`,

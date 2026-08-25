@@ -50,16 +50,26 @@ public abstract class BaseVisualTicksOverlay extends Overlay
 
         int textHeight = fm.getAscent();
 
-        // First pass: one cell size shared by every tick. Labels differ in width
-        // ("10" is wider than "9"), so sizing each cell on its own label would give
-        // each column its own pitch and break the row. See issue #5.
-        int cellSize = s.showShape ? s.shapeSize : 0;
+        // First pass: one cell shared by every tick, so all columns and rows sit on a
+        // single pitch. Labels differ in width ("10" is wider than "9"), so sizing each
+        // cell on its own label would break the grid. See issue #5.
+        //
+        // Width and height are tracked apart because only width varies with the label:
+        // folding the widest label into the height too would push the rows away from
+        // each other for a purely horizontal reason.
+        int cellWidth = s.showShape ? s.shapeSize : 0;
+        int cellHeight = cellWidth;
         if (s.showText) {
-            cellSize = Math.max(cellSize, textHeight);
+            cellHeight = Math.max(cellHeight, textHeight);
             for (int i = 0; i < s.numberOfTicks; i++) {
-                cellSize = Math.max(cellSize, fm.stringWidth(String.valueOf(i + 1)));
+                cellWidth = Math.max(cellWidth, fm.stringWidth(String.valueOf(i + 1)));
             }
         }
+
+        // The cell is sized for the widest label, so a corner-anchored shape would sit
+        // adrift from the number it carries. Centre it in the cell the label centres in.
+        int shapeInsetX = s.showShape ? (cellWidth - s.shapeSize) / 2 : 0;
+        int shapeInsetY = s.showShape ? (cellHeight - s.shapeSize) / 2 : 0;
 
         int maxCol = 0;
         int maxRow = 0;
@@ -68,15 +78,15 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         {
             int row = i / s.amountPerRow;
             int col = i % s.amountPerRow;
-            int x = col * (cellSize + s.horizontalSpacing);
-            int y = row * (cellSize + s.verticalSpacing);
+            int x = col * (cellWidth + s.horizontalSpacing);
+            int y = row * (cellHeight + s.verticalSpacing);
 
-            Tick tick = new Tick(x, y);
+            Tick tick = new Tick(x + shapeInsetX, y + shapeInsetY);
 
             if (s.showText) {
                 int textWidth = fm.stringWidth(String.valueOf(i + 1));
-                tick.fontX = x + (cellSize - textWidth) / 2;
-                tick.fontY = y + (cellSize + textHeight) / 2;
+                tick.fontX = x + (cellWidth - textWidth) / 2;
+                tick.fontY = y + (cellHeight + textHeight) / 2;
             }
             ticks.add(tick);
 
@@ -84,8 +94,8 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             maxCol = Math.max(maxCol, col);
         }
 
-        dimension.width = (maxCol + 1) * (cellSize + s.horizontalSpacing) - s.horizontalSpacing;
-        dimension.height = (maxRow + 1) * (cellSize + s.verticalSpacing) - s.verticalSpacing;
+        dimension.width = (maxCol + 1) * (cellWidth + s.horizontalSpacing) - s.horizontalSpacing;
+        dimension.height = (maxRow + 1) * (cellHeight + s.verticalSpacing) - s.verticalSpacing;
 
         g.setFont(originalFont);
     }
