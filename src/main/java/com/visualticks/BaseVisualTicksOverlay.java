@@ -66,6 +66,12 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             }
         }
 
+        // Negative spacing legitimately tightens the layout, but below -cell it inverts the
+        // pitch: each tick would sit left of / above the last, marching out of the reported
+        // bounds and driving the Dimension negative. Clamp at total overlap. See issue #6.
+        int horizontalSpacing = Math.max(s.horizontalSpacing, -cellWidth);
+        int verticalSpacing = Math.max(s.verticalSpacing, -cellHeight);
+
         // The cell is sized for the widest label, so a corner-anchored shape would sit
         // adrift from the number it carries. Centre it in the cell the label centres in.
         int shapeInsetX = s.showShape ? (cellWidth - s.shapeSize) / 2 : 0;
@@ -78,8 +84,8 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         {
             int row = i / s.amountPerRow;
             int col = i % s.amountPerRow;
-            int x = col * (cellWidth + s.horizontalSpacing);
-            int y = row * (cellHeight + s.verticalSpacing);
+            int x = col * (cellWidth + horizontalSpacing);
+            int y = row * (cellHeight + verticalSpacing);
 
             Tick tick = new Tick(x + shapeInsetX, y + shapeInsetY);
 
@@ -94,8 +100,8 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             maxCol = Math.max(maxCol, col);
         }
 
-        dimension.width = (maxCol + 1) * (cellWidth + s.horizontalSpacing) - s.horizontalSpacing;
-        dimension.height = (maxRow + 1) * (cellHeight + s.verticalSpacing) - s.verticalSpacing;
+        dimension.width = (maxCol + 1) * (cellWidth + horizontalSpacing) - horizontalSpacing;
+        dimension.height = (maxRow + 1) * (cellHeight + verticalSpacing) - verticalSpacing;
 
         g.setFont(originalFont);
     }
