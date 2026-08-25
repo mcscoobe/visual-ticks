@@ -48,43 +48,44 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         g.setFont(originalFont.deriveFont((float) s.textSize));
         FontMetrics fm = g.getFontMetrics();
 
-        int maxBoundingSize = 0;
+        int textHeight = fm.getAscent();
+
+        // First pass: one cell size shared by every tick. Labels differ in width
+        // ("10" is wider than "9"), so sizing each cell on its own label would give
+        // each column its own pitch and break the row. See issue #5.
+        int cellSize = s.showShape ? s.shapeSize : 0;
+        if (s.showText) {
+            cellSize = Math.max(cellSize, textHeight);
+            for (int i = 0; i < s.numberOfTicks; i++) {
+                cellSize = Math.max(cellSize, fm.stringWidth(String.valueOf(i + 1)));
+            }
+        }
+
         int maxCol = 0;
         int maxRow = 0;
 
         for (int i = 0; i < s.numberOfTicks; i++)
         {
-            int boundingSize = s.showShape ? s.shapeSize : 0;
-
-            String text = String.valueOf(i + 1);
-            int textWidth = fm.stringWidth(text);
-            int textHeight = fm.getAscent();
-
-            if (s.showText) {
-                boundingSize = Math.max(boundingSize, textWidth);
-                boundingSize = Math.max(boundingSize, textHeight);
-            }
-
             int row = i / s.amountPerRow;
             int col = i % s.amountPerRow;
-            int x = col * (boundingSize + s.horizontalSpacing);
-            int y = row * (boundingSize + s.verticalSpacing);
+            int x = col * (cellSize + s.horizontalSpacing);
+            int y = row * (cellSize + s.verticalSpacing);
 
             Tick tick = new Tick(x, y);
 
             if (s.showText) {
-                tick.fontX = x + (boundingSize - textWidth) / 2;
-                tick.fontY = y + (boundingSize + textHeight) / 2;
+                int textWidth = fm.stringWidth(String.valueOf(i + 1));
+                tick.fontX = x + (cellSize - textWidth) / 2;
+                tick.fontY = y + (cellSize + textHeight) / 2;
             }
             ticks.add(tick);
 
-            maxBoundingSize = Math.max(maxBoundingSize, boundingSize);
             maxRow = Math.max(maxRow, row);
             maxCol = Math.max(maxCol, col);
         }
 
-        dimension.width = (maxCol + 1) * (maxBoundingSize + s.horizontalSpacing) - s.horizontalSpacing;
-        dimension.height = (maxRow + 1) * (maxBoundingSize + s.verticalSpacing) - s.verticalSpacing;
+        dimension.width = (maxCol + 1) * (cellSize + s.horizontalSpacing) - s.horizontalSpacing;
+        dimension.height = (maxRow + 1) * (cellSize + s.verticalSpacing) - s.verticalSpacing;
 
         g.setFont(originalFont);
     }

@@ -143,13 +143,12 @@ public class BaseVisualTicksOverlayTest
 	}
 
 	/**
-	 * Real labels are not all the same width: "10" is wider than "9". The column pitch
-	 * comes from each tick's own cell while the reported width comes from the widest
-	 * cell, so a two-digit label shifts only itself and leaves a gap. This pins the
-	 * current behaviour; see issue #5. Update the expectations when that is fixed.
+	 * Real labels are not all the same width: "10" is wider than "9". Every column
+	 * still has to sit on one pitch - the widest cell - so the row stays aligned and
+	 * the reported width matches what is drawn. Regression test for issue #5.
 	 */
 	@Test
-	public void twoDigitLabelsShiftOnlyTheirOwnColumn()
+	public void allColumnsShareThePitchOfTheWidestLabel()
 	{
 		when(fontMetrics.stringWidth(anyString()))
 			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
@@ -163,12 +162,136 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		// "1".."9" measure 8, so they get 10px cells at a 15px pitch
-		assertEquals(8 * 15, overlay.ticks.get(8).shapeX);
-		// "10" measures 16, so this one tick alone uses a 21px pitch
+		// "10" measures 16, the widest label, so every cell is 16 at a 21px pitch
+		for (int i = 0; i < 10; i++)
+		{
+			assertEquals(i * 21, overlay.ticks.get(i).shapeX);
+		}
+		// and the reported width is that same pitch, so it matches the drawn content
+		assertEquals(10 * 21 - 5, size.width);
+	}
+
+	/** Each label is centred in the shared cell, so narrow labels get a wider inset. */
+	@Test
+	public void narrowerLabelsAreCentredInTheSharedCell()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = 10;
+		s.amountPerRow = 10;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		overlay.render(graphics);
+
+		// cell 16: "1" (8 wide) insets by 4, "10" (16 wide) fills the cell
+		assertEquals((16 - 8) / 2, overlay.ticks.get(0).fontX);
+		assertEquals(9 * 21, overlay.ticks.get(9).fontX);
+		assertEquals((16 + TEXT_ASCENT) / 2, overlay.ticks.get(0).fontY);
+	}
+
+	/**
+	 * The uniform pitch has to hold down the y-axis too: a wide label in a later row
+	 * must not push its row out. Rows and columns share one cell, so both pitches and
+	 * the reported height agree. Regression test for issue #5.
+	 */
+	@Test
+	public void rowsShareOnePitchWhenLabelsDiffer()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = 12;
+		s.amountPerRow = 5;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		s.verticalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		// widest label is "10".."12" at 16, so every cell is 16 and both pitches are 21
+		assertPosition(overlay.ticks.get(0), 0, 0);
+		assertPosition(overlay.ticks.get(4), 4 * 21, 0);
+		// row 2 starts back at x 0 even though it holds the two-digit labels
+		assertPosition(overlay.ticks.get(5), 0, 21);
+		assertPosition(overlay.ticks.get(9), 4 * 21, 21);
+		assertPosition(overlay.ticks.get(11), 21, 2 * 21);
+		assertEquals(new Dimension(5 * 21 - 5, 3 * 21 - 5), size);
+	}
+
+	/** Text-only: no shape to seed the cell, so the labels alone set the pitch. */
+	@Test
+	public void textOnlyCellsAreSizedByTheLabels()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> TEXT_WIDTH * invocation.getArgument(0, String.class).length());
+		TickSettings s = shapeSettings();
+		s.showShape = false;
+		s.showText = true;
+		s.numberOfTicks = 10;
+		s.amountPerRow = 10;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		// cell is the widest label (16), not the shape size, and still uniform
 		assertEquals(9 * 21, overlay.ticks.get(9).shapeX);
-		// yet the reported width assumes every column used the widest cell
-		assertEquals(10 * (16 + 5) - 5, size.width);
+		assertEquals(10 * 21 - 5, size.width);
+		verify(graphics, never()).fillRect(anyInt(), anyInt(), anyInt(), anyInt());
+		verify(graphics, never()).fillOval(anyInt(), anyInt(), anyInt(), anyInt());
+	}
+
+	/** A tall font drives the cell when it out-measures both the shape and the labels. */
+	@Test
+	public void ascentDrivesTheCellWhenItIsTallest()
+	{
+		when(fontMetrics.getAscent()).thenReturn(30);
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = 2;
+		s.amountPerRow = 8;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		// cell is max(shape 10, ascent 30, label 8) = 30, so the pitch is 35
+		assertEquals(35, overlay.ticks.get(1).shapeX);
+		assertEquals(new Dimension(2 * 35 - 5, 30), size);
+		assertEquals((30 - TEXT_WIDTH) / 2, overlay.ticks.get(0).fontX);
+	}
+
+	/**
+	 * The first pass has to be a true max over every label, not a peek at the last one -
+	 * digit count usually makes the last label widest, which would hide the shortcut.
+	 */
+	@Test
+	public void widestLabelCountsWhereverItFalls()
+	{
+		when(fontMetrics.stringWidth(anyString()))
+			.thenAnswer(invocation -> "2".equals(invocation.getArgument(0, String.class)) ? 40 : TEXT_WIDTH);
+		TickSettings s = shapeSettings();
+		s.showText = true;
+		s.numberOfTicks = 3;
+		s.amountPerRow = 8;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		// the 40px "2" sits in the middle, yet every cell is 40 at a 45px pitch
+		assertEquals(45, overlay.ticks.get(1).shapeX);
+		assertEquals(2 * 45, overlay.ticks.get(2).shapeX);
+		assertEquals(3 * 45 - 5, size.width);
 	}
 
 	@Test
