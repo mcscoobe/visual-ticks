@@ -109,6 +109,22 @@ public class VisualTicksPluginLogicTest
 		assertArrayEquals(new int[]{0, 1, 0}, plugin.ticks);
 	}
 
+	/**
+	 * A stored tick count of 0 is out of @Range but reachable from an edited or synced
+	 * profile, and used to throw ArithmeticException every tick. The bus here rethrows
+	 * subscriber exceptions, so the assertions below only run if nothing threw.
+	 * Regression test for issue #7.
+	 */
+	@Test
+	public void zeroTickCountDoesNotDivideByZero()
+	{
+		when(config.numberOfTicksOne()).thenReturn(0);
+
+		gameTicks(3);
+
+		assertArrayEquals(new int[]{0, 0, 3}, plugin.ticks);
+	}
+
 	@Test
 	public void disabledCountersDoNotAdvance()
 	{

@@ -551,6 +551,46 @@ public class BaseVisualTicksOverlayTest
 		assertEquals(32, size.height);
 	}
 
+	/**
+	 * A stored amountPerRow of 0 is out of @Range but reachable from an edited or
+	 * synced profile, and used to divide by zero every frame. Regression test for
+	 * issue #7.
+	 */
+	@Test
+	public void zeroAmountPerRowFallsBackToOnePerRow()
+	{
+		TickSettings s = shapeSettings();
+		s.numberOfTicks = 3;
+		s.amountPerRow = 0;
+		s.shapeSize = 10;
+		s.horizontalSpacing = 5;
+		s.verticalSpacing = 5;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		assertPosition(overlay.ticks.get(0), 0, 0);
+		assertPosition(overlay.ticks.get(1), 0, 15);
+		assertPosition(overlay.ticks.get(2), 0, 30);
+		assertEquals(new Dimension(10, 40), size);
+	}
+
+	/** Zero ticks must claim no screen space, not a phantom one-cell box. */
+	@Test
+	public void zeroTickCountDrawsNothingAndReservesNoSpace()
+	{
+		TickSettings s = shapeSettings();
+		s.numberOfTicks = 0;
+		s.shapeSize = 20;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		assertTrue(overlay.ticks.isEmpty());
+		assertEquals(new Dimension(0, 0), size);
+		verify(graphics, never()).fillRect(anyInt(), anyInt(), anyInt(), anyInt());
+	}
+
 	private static void assertPosition(Tick tick, int x, int y)
 	{
 		assertEquals(x, tick.shapeX);
