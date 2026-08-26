@@ -1,4 +1,5 @@
 package com.visualticks;
+import com.visualticks.config.HotkeyMode;
 import com.visualticks.config.InterfaceTab;
 import com.visualticks.config.TickShape;
 import net.runelite.client.config.*;
@@ -26,6 +27,41 @@ public interface VisualTicksConfig extends Config {
     )
     default Keybind tickResetHotkey() {
         return new Keybind(KeyEvent.VK_BACK_QUOTE, KeyEvent.VK_UNDEFINED);
+    }
+
+    @ConfigItem(
+            position = 1,
+            keyName = "tickAdjustHotkeyMode",
+            name = "Tick Adjust Hotkeys",
+            description = "Global: the two hotkeys below adjust every tick set at once. "
+                    + "Independent: each tick set is adjusted by its own hotkeys, set in that section.",
+            section = hotkeySettings
+    )
+    default HotkeyMode tickAdjustHotkeyMode() {
+        return HotkeyMode.GLOBAL;
+    }
+
+    @ConfigItem(
+            position = 2,
+            keyName = "tickIncreaseHotkey",
+            name = "Tick Increase Hotkey",
+            description = "Hotkey to add a tick to every set. Only used when Tick Adjust Hotkeys is Global.",
+            section = hotkeySettings
+    )
+    default Keybind tickIncreaseHotkey() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(
+            position = 3,
+            keyName = "tickDecreaseHotkey",
+            name = "Tick Decrease Hotkey",
+            description = "Hotkey to remove a tick from every set, hiding a set already at 2. "
+                    + "Only used when Tick Adjust Hotkeys is Global.",
+            section = hotkeySettings
+    )
+    default Keybind tickDecreaseHotkey() {
+        return Keybind.NOT_SET;
     }
     //endregion
 
@@ -222,6 +258,29 @@ public interface VisualTicksConfig extends Config {
     default int verticalSpacingOne() {
         return 5;
     }
+
+    @ConfigItem(
+            keyName = "increaseHotkeyOne",
+            name = "Increase Hotkey",
+            description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettings,
+            position = 16
+    )
+    default Keybind increaseHotkeyOne() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(
+            keyName = "decreaseHotkeyOne",
+            name = "Decrease Hotkey",
+            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+                    + "Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettings,
+            position = 17
+    )
+    default Keybind decreaseHotkeyOne() {
+        return Keybind.NOT_SET;
+    }
     //endregion
 
     //region Tick settings - Two
@@ -417,6 +476,29 @@ public interface VisualTicksConfig extends Config {
     default int verticalSpacingTwo() {
         return 5;
     }
+
+    @ConfigItem(
+            keyName = "increaseHotkeyTwo",
+            name = "Increase Hotkey",
+            description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettingsTwo,
+            position = 16
+    )
+    default Keybind increaseHotkeyTwo() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(
+            keyName = "decreaseHotkeyTwo",
+            name = "Decrease Hotkey",
+            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+                    + "Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettingsTwo,
+            position = 17
+    )
+    default Keybind decreaseHotkeyTwo() {
+        return Keybind.NOT_SET;
+    }
     //endregion
 
     //region Tick settings - Three
@@ -611,6 +693,29 @@ public interface VisualTicksConfig extends Config {
     @Range(min = -50)
     default int verticalSpacingThree() {
         return 5;
+    }
+
+    @ConfigItem(
+            keyName = "increaseHotkeyThree",
+            name = "Increase Hotkey",
+            description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettingsThree,
+            position = 16
+    )
+    default Keybind increaseHotkeyThree() {
+        return Keybind.NOT_SET;
+    }
+
+    @ConfigItem(
+            keyName = "decreaseHotkeyThree",
+            name = "Decrease Hotkey",
+            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+                    + "Only used when Tick Adjust Hotkeys is Independent.",
+            section = tickSettingsThree,
+            position = 17
+    )
+    default Keybind decreaseHotkeyThree() {
+        return Keybind.NOT_SET;
     }
     //endregion
 }

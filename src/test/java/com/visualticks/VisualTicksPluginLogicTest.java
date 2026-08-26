@@ -1,6 +1,10 @@
 package com.visualticks;
 
+import com.visualticks.config.HotkeyMode;
+import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.vars.InputType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.Keybind;
@@ -21,6 +25,8 @@ import java.awt.Canvas;
 import java.awt.event.KeyEvent;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -35,6 +41,24 @@ public class VisualTicksPluginLogicTest
 {
 	@Mock
 	private Keybind resetHotkey;
+	@Mock
+	private Keybind globalIncrease;
+	@Mock
+	private Keybind globalDecrease;
+	@Mock
+	private Keybind increaseOne;
+	@Mock
+	private Keybind decreaseOne;
+	@Mock
+	private Keybind increaseTwo;
+	@Mock
+	private Keybind decreaseTwo;
+	@Mock
+	private Keybind increaseThree;
+	@Mock
+	private Keybind decreaseThree;
+	@Mock
+	private Client client;
 	@Mock
 	private VisualTicksConfig config;
 	@Mock
@@ -75,6 +99,15 @@ public class VisualTicksPluginLogicTest
 		when(config.numberOfTicksTwo()).thenReturn(3);
 		when(config.numberOfTicksThree()).thenReturn(4);
 		when(config.tickResetHotkey()).thenReturn(resetHotkey);
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.GLOBAL);
+		when(config.tickIncreaseHotkey()).thenReturn(globalIncrease);
+		when(config.tickDecreaseHotkey()).thenReturn(globalDecrease);
+		when(config.increaseHotkeyOne()).thenReturn(increaseOne);
+		when(config.decreaseHotkeyOne()).thenReturn(decreaseOne);
+		when(config.increaseHotkeyTwo()).thenReturn(increaseTwo);
+		when(config.decreaseHotkeyTwo()).thenReturn(decreaseTwo);
+		when(config.increaseHotkeyThree()).thenReturn(increaseThree);
+		when(config.decreaseHotkeyThree()).thenReturn(decreaseThree);
 
 		// Run scheduled work inline so hotkey handling is observable.
 		doAnswer(invocation ->
@@ -216,6 +249,257 @@ public class VisualTicksPluginLogicTest
 	}
 
 	@Test
+	public void globalIncreaseAddsATickToEverySet()
+	{
+		press(globalIncrease);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 3);
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksTwo", 4);
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksThree", 5);
+	}
+
+	@Test
+	public void globalDecreaseRemovesATick()
+	{
+		press(globalDecrease);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksTwo", 2);
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksThree", 3);
+	}
+
+	/** The count never leaves the range the settings slider allows. */
+	@Test
+	public void adjustmentStaysInsideTheSliderRange()
+	{
+		when(config.numberOfTicksOne()).thenReturn(30);
+		when(config.numberOfTicksTwo()).thenReturn(45);
+
+		press(globalIncrease);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 30);
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksTwo", 30);
+	}
+
+	@Test
+	public void decreasingASetAtTwoHidesIt()
+	{
+		press(globalDecrease);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", false);
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 1);
+	}
+
+	@Test
+	public void increaseBringsBackWhatTheDecreaseHotkeyHid()
+	{
+		press(globalDecrease);
+		when(config.isEnabledOne()).thenReturn(false);
+
+		press(globalIncrease);
+
+		// Already stored at 2, so enabling it is the whole job.
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	/** Otherwise one global increase switches on sets the user never wanted. */
+	@Test
+	public void increaseLeavesSetsTheUserDisabledAlone()
+	{
+		when(config.isEnabledTwo()).thenReturn(false);
+
+		press(globalIncrease);
+
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledTwo", true);
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksTwo", 2);
+	}
+
+	@Test
+	public void showingAHiddenSetFromTheConfigPanelEndsTheHotkeyClaimOnIt()
+	{
+		press(globalDecrease);
+
+		// Re-enabled by hand, then disabled by hand: no longer the hotkey's to restore.
+		when(config.isEnabledOne()).thenReturn(true);
+		ConfigChanged event = new ConfigChanged();
+		event.setGroup(VisualTicksConfig.GROUP_NAME);
+		eventBus.post(event);
+		when(config.isEnabledOne()).thenReturn(false);
+
+		press(globalIncrease);
+
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	@Test
+	public void independentHotkeysTouchOnlyTheirOwnSet()
+	{
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.INDEPENDENT);
+
+		press(increaseTwo);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksTwo", 4);
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 3);
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksThree", 5);
+	}
+
+	/** A per-set hotkey names its target, so it revives it however it was disabled. */
+	@Test
+	public void independentIncreaseShowsItsOwnDisabledSet()
+	{
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.INDEPENDENT);
+		when(config.isEnabledOne()).thenReturn(false);
+
+		press(increaseOne);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	@Test
+	public void theGlobalHotkeysAreIgnoredInIndependentMode()
+	{
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.INDEPENDENT);
+
+		press(globalIncrease);
+
+		verifyNoInteractions(configManager);
+	}
+
+	@Test
+	public void independentHotkeysAreIgnoredInGlobalMode()
+	{
+		press(increaseTwo);
+
+		verifyNoInteractions(configManager);
+	}
+
+	/** Keybind.matches already rejects NOT_SET; this pins that the plugin relies on it. */
+	@Test
+	public void unsetHotkeysChangeNothing()
+	{
+		when(config.tickIncreaseHotkey()).thenReturn(Keybind.NOT_SET);
+		when(config.tickDecreaseHotkey()).thenReturn(Keybind.NOT_SET);
+
+		plugin.keyPressed(new KeyEvent(new Canvas(), KeyEvent.KEY_PRESSED,
+			System.currentTimeMillis(), 0, KeyEvent.VK_UNDEFINED, KeyEvent.CHAR_UNDEFINED));
+
+		verifyNoInteractions(configManager);
+	}
+
+	/**
+	 * KeyManager withholds key events only on the login screen, so a printable key bound
+	 * to an adjustment would otherwise rewrite stored settings mid-sentence.
+	 */
+	@Test
+	public void adjustmentsAreIgnoredWhileTyping()
+	{
+		when(client.getVarcStrValue(VarClientID.CHATINPUT)).thenReturn("hi there");
+
+		press(globalIncrease);
+
+		verifyNoInteractions(configManager);
+	}
+
+	@Test
+	public void adjustmentsAreIgnoredWhileAnInputDialogIsOpen()
+	{
+		when(client.getVarcIntValue(VarClientID.MESLAYERMODE)).thenReturn(InputType.SEARCH.getType());
+
+		press(globalIncrease);
+
+		verifyNoInteractions(configManager);
+	}
+
+	/** Resetting a counter is harmless enough to survive a stray keystroke. */
+	@Test
+	public void theResetHotkeyStillWorksWhileTyping()
+	{
+		when(client.getVarcStrValue(VarClientID.CHATINPUT)).thenReturn("hi there");
+		when(resetHotkey.matches(any(KeyEvent.class))).thenReturn(true);
+		gameTicks(1);
+
+		plugin.keyPressed(keyEvent());
+
+		assertArrayEquals(new int[]{0, 0, 0}, plugin.ticks);
+	}
+
+	/** So a bound key doesn't both adjust the counter and type itself into the chatbox. */
+	@Test
+	public void aMatchedAdjustmentConsumesItsKeyEvent()
+	{
+		when(globalIncrease.matches(any(KeyEvent.class))).thenReturn(true);
+		KeyEvent event = keyEvent();
+
+		plugin.keyPressed(event);
+
+		assertTrue(event.isConsumed());
+	}
+
+	@Test
+	public void anUnmatchedKeyIsLeftAlone()
+	{
+		KeyEvent event = keyEvent();
+
+		plugin.keyPressed(event);
+
+		assertFalse(event.isConsumed());
+	}
+
+	/** A set sized by the user and switched off by hand keeps its size when it returns. */
+	@Test
+	public void revivingASetKeepsTheCountItWasConfiguredWith()
+	{
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.INDEPENDENT);
+		when(config.isEnabledOne()).thenReturn(false);
+		when(config.numberOfTicksOne()).thenReturn(8);
+
+		press(increaseOne);
+
+		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 2);
+	}
+
+	/** A stored count below the minimum is still normalised on the way back in. */
+	@Test
+	public void revivingASetNormalisesACountBelowTheMinimum()
+	{
+		when(config.tickAdjustHotkeyMode()).thenReturn(HotkeyMode.INDEPENDENT);
+		when(config.isEnabledOne()).thenReturn(false);
+		when(config.numberOfTicksOne()).thenReturn(0);
+
+		press(increaseOne);
+
+		// Count first, so the set never reappears at its stale size.
+		InOrder inOrder = inOrder(configManager);
+		inOrder.verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "numberOfTicksOne", 2);
+		inOrder.verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	/** Profiles carry their own enabled flags, so a claim must not cross between them. */
+	@Test
+	public void switchingProfileDropsTheHotkeyClaim()
+	{
+		press(globalDecrease);
+		when(config.isEnabledOne()).thenReturn(false);
+
+		eventBus.post(new ProfileChanged());
+		press(globalIncrease);
+
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	@Test
+	public void restartingDropsTheHotkeyClaim() throws Exception
+	{
+		press(globalDecrease);
+		when(config.isEnabledOne()).thenReturn(false);
+
+		plugin.startUp();
+		press(globalIncrease);
+
+		verify(configManager, never()).setConfiguration(VisualTicksConfig.GROUP_NAME, "isEnabledOne", true);
+	}
+
+	@Test
 	public void shutDownRemovesEveryOverlayAndTheKeyListener() throws Exception
 	{
 		plugin.shutDown();
@@ -272,6 +556,13 @@ public class VisualTicksPluginLogicTest
 		eventBus.post(new ProfileChanged());
 
 		verify(configManager).setConfiguration(VisualTicksConfig.GROUP_NAME, "horizontalSpacingOne", "7");
+	}
+
+	private void press(Keybind hotkey)
+	{
+		when(hotkey.matches(any(KeyEvent.class))).thenReturn(true);
+		plugin.keyPressed(keyEvent());
+		when(hotkey.matches(any(KeyEvent.class))).thenReturn(false);
 	}
 
 	private static KeyEvent keyEvent()
