@@ -133,3 +133,12 @@ same PR as the code:
   those gifs show needs the gifs regenerated, not just the prose edited.
 - `runelite-plugin.properties` — the Plugin Hub manifest (`displayName`, `description`,
   `tags`). This is what users read before installing.
+
+  It also carries `build=standard`, which the hub packager requires. Standard means the
+  hub **replaces `build.gradle` and `settings.gradle` with its own** when it builds a
+  submission, so nothing in this repo's `build.gradle` reaches the hub build: a new runtime
+  dependency added there would compile here and be missing in the shipped plugin. The hub's
+  own set covers the RuneLite client, Lombok and JetBrains annotations; it never compiles
+  `src/test`, so the JUnit/Mockito dependencies and `runTestClient` are local-only. Adding
+  a real dependency means switching to `build=gradle` and getting it onto the hub's
+  verification allow-list.
