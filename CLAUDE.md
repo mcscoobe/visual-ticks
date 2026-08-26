@@ -7,7 +7,7 @@ optional tab restriction.
 ## Commands
 
 ```bash
-./gradlew test           # unit tests (JUnit 4 + Mockito) — 63 tests, no game client needed
+./gradlew test           # unit tests (JUnit 4 + Mockito) — 72 tests, no game client needed
 ./gradlew build          # compile + test
 ./gradlew runTestClient  # launch RuneLite with this plugin side-loaded (--developer-mode)
 ```
@@ -58,8 +58,9 @@ throws, so a transient failure retries next frame instead of latching.
 
 **Threading.** `ticks` is touched by `onGameTick` and overlay rendering (client thread) and
 by `keyPressed` (AWT thread). The reset hotkey therefore hands its `Arrays.fill` to
-`clientThread.invoke` rather than writing directly. The adjust hotkeys need no such hop:
-they only write config, which `onConfigChanged` already handles off the client thread.
+`clientThread.invoke` rather than writing directly. The adjust hotkeys need no such hop for
+their config writes, which `onConfigChanged` already handles off the client thread, but
+`hiddenByHotkey` is written from AWT and cleared from the client thread, so it is volatile.
 
 **Tick adjust hotkeys (issue #3).** `tickAdjustHotkeyMode` picks between one global
 increase/decrease pair and a pair per tick set; RuneLite's `@ConfigItem` has no conditional
@@ -68,7 +69,15 @@ ones `keyPressed` honours. Adjustments are written back through `ConfigManager` 
 the overlays as an ordinary `ConfigChanged`. Decreasing a set at 2 disables it and records
 that in `hiddenByHotkey`, which exists so a *global* increase revives only what the global
 decrease hid instead of switching on sets the user deliberately turned off; a per-set
-increase names its target and revives it either way.
+increase names its target and revives it either way. That claim is session-only and is
+cleared on `startUp` and `ProfileChanged` — a profile carries its own enabled flags, so a
+claim must never cross between profiles.
+
+`keyPressed` skips adjustments while the player is typing, and consumes the key event of a
+matched adjustment. `KeyManager.shouldProcess` withholds key events only on the login
+screen, so without that guard a printable key bound to an adjustment would rewrite stored
+settings mid-sentence. The reset hotkey is deliberately outside the guard: clearing a
+counter is cheap enough to survive a stray keystroke.
 
 **Config migration.** `migrate()` runs on `startUp` and on `ProfileChanged`. It splits the
 legacy single-padding keys (`paddingBetweenTicksOne`, `tickPaddingTwo`, `tickPaddingThree`)

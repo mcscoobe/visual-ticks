@@ -2,7 +2,10 @@ package com.visualticks;
 
 import com.google.inject.Provides;
 import com.visualticks.config.HotkeyMode;
+import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.vars.InputType;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.Keybind;
@@ -39,6 +42,8 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     private ConfigManager configManager;
     @Inject
     private ClientThread clientThread;
+    @Inject
+    private Client client;
 
     public final int[] ticks = new int[3];
 
@@ -52,13 +57,25 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     private static final String[] SUFFIXES = {"One", "Two", "Three"};
 
     /**
-     * Which sets the decrease hotkey hid. Without it a global increase would switch on
-     * sets the user deliberately left disabled, instead of only undoing its own work.
+     * Bit per tick set: which sets the decrease hotkey hid. Without it a global increase
+     * would switch on sets the user deliberately left disabled, instead of only undoing
+     * its own work.
+     *
+     * <p>Written from {@code keyPressed} on the AWT thread and cleared from
+     * {@code updateOverlays}, which also runs on the client thread from {@code startUp} —
+     * hence volatile. The bit updates are read-modify-write rather than atomic; the cost
+     * of losing that race is one revive that does not happen, so a lock would buy nothing.
+     *
+     * <p>Deliberately not persisted: it lives for the session only, and is cleared on
+     * startup and on profile change so a claim from one profile can never revive a set in
+     * another. A set hidden by hotkey and left that way across a restart has to be
+     * re-enabled from the config panel.
      */
-    private final boolean[] hiddenByHotkey = new boolean[3];
+    private volatile int hiddenByHotkey;
 
     @Override
     protected void startUp() throws Exception {
+        hiddenByHotkey = 0;
         updateOverlays();
         keyManager.registerKeyListener(this);
         migrate();
@@ -99,6 +116,9 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Subscribe
     public void onProfileChanged(ProfileChanged profileChanged) {
+        // The new profile has its own enabled flags, so a claim carried over from the old
+        // one would revive a set the user disabled here.
+        hiddenByHotkey = 0;
         migrate();
     }
 
@@ -110,16 +130,20 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         BaseVisualTicksOverlay[] overlays = overlays();
         boolean[] enabled = {config.isEnabledOne(), config.isEnabledTwo(), config.isEnabledThree()};
 
+        int enabledMask = 0;
+
         for (int i = 0; i < overlays.length; i++) {
             overlayManager.remove(overlays[i]);
             if (enabled[i]) {
                 overlayManager.add(overlays[i]);
+                enabledMask |= 1 << i;
             }
-            // A set that is visible again is no longer the decrease hotkey's to restore,
-            // however it got there.
-            hiddenByHotkey[i] &= !enabled[i];
             overlays[i].onConfigChanged();
         }
+
+        // A set that is visible again is no longer the decrease hotkey's to restore,
+        // however it got there.
+        hiddenByHotkey &= ~enabledMask;
     }
 
     @Provides
@@ -133,37 +157,56 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (pressed(config.tickResetHotkey(), e)) {
+        if (config.tickResetHotkey().matches(e)) {
             // keyPressed runs on the AWT thread; ticks is otherwise only touched
             // by onGameTick and overlay rendering, both on the client thread.
             clientThread.invoke(() -> Arrays.fill(ticks, 0));
             return;
         }
 
+        // KeyManager only withholds key events on the login screen, so a printable key
+        // bound here reaches the plugin while the player is typing. The reset hotkey can
+        // afford that — it clears a counter — but an adjustment rewrites stored settings.
+        if (isTyping()) {
+            return;
+        }
+
         if (config.tickAdjustHotkeyMode() == HotkeyMode.GLOBAL) {
-            if (pressed(config.tickIncreaseHotkey(), e)) {
+            if (config.tickIncreaseHotkey().matches(e)) {
                 adjustAll(1);
-            } else if (pressed(config.tickDecreaseHotkey(), e)) {
+                e.consume();
+            } else if (config.tickDecreaseHotkey().matches(e)) {
                 adjustAll(-1);
+                e.consume();
             }
             return;
         }
 
         for (int i = 0; i < SUFFIXES.length; i++) {
-            if (pressed(increaseHotkey(i), e)) {
+            if (increaseHotkey(i).matches(e)) {
                 adjust(i, 1, true);
-            } else if (pressed(decreaseHotkey(i), e)) {
+                e.consume();
+            } else if (decreaseHotkey(i).matches(e)) {
                 adjust(i, -1, true);
+                e.consume();
             }
         }
     }
 
     /**
-     * An unset keybind carries {@code VK_UNDEFINED}, so leave it to no key rather than
-     * trusting every keybind to reject a key event on its own.
+     * Whether the player is entering text. Covers an open input dialog and a chat message
+     * already under way; the first printable key into an empty chatbox is indistinguishable
+     * from a hotkey press, which is why a matched adjustment consumes its key event rather
+     * than letting it through to the game as well. Bind a modifier combination to keep a
+     * key usable for both.
      */
-    private static boolean pressed(Keybind keybind, KeyEvent e) {
-        return keybind != null && !Keybind.NOT_SET.equals(keybind) && keybind.matches(e);
+    private boolean isTyping() {
+        if (client.getVarcIntValue(VarClientID.MESLAYERMODE) != InputType.NONE.getType()) {
+            return true;
+        }
+
+        String typed = client.getVarcStrValue(VarClientID.CHATINPUT);
+        return typed != null && !typed.isEmpty();
     }
 
     private void adjustAll(int delta) {
@@ -184,12 +227,20 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
      */
     private void adjust(int index, int delta, boolean targeted) {
         String suffix = SUFFIXES[index];
+        int bit = 1 << index;
 
         if (!isEnabled(index)) {
-            if (delta > 0 && (targeted || hiddenByHotkey[index])) {
-                hiddenByHotkey[index] = false;
+            if (delta > 0 && (targeted || (hiddenByHotkey & bit) != 0)) {
+                hiddenByHotkey &= ~bit;
+                // Hiding a set leaves its count alone, so a set hidden at the minimum is
+                // still stored there and needs no write. Only a count below the minimum
+                // has to be normalised: overwriting unconditionally would throw away the
+                // count of a set the user sized and then switched off by hand.
+                //
                 // Count first: enabling first would show the set at its stale count for a frame.
-                setConfiguration("numberOfTicks" + suffix, MIN_TICKS);
+                if (numberOfTicks(index) < MIN_TICKS) {
+                    setConfiguration("numberOfTicks" + suffix, MIN_TICKS);
+                }
                 setConfiguration("isEnabled" + suffix, true);
             }
             return;
@@ -199,7 +250,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         if (delta < 0 && count <= MIN_TICKS) {
             // Set before the write: setConfiguration posts ConfigChanged, and
             // updateOverlays reads this flag back.
-            hiddenByHotkey[index] = true;
+            hiddenByHotkey |= bit;
             setConfiguration("isEnabled" + suffix, false);
             return;
         }
