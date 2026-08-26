@@ -493,6 +493,64 @@ public class BaseVisualTicksOverlayTest
 		assertEquals(2, overlay.reads);
 	}
 
+	/** Modest negative spacing is a real feature: the ticks overlap but still advance. */
+	@Test
+	public void negativeSpacingTightensTheLayout()
+	{
+		TickSettings s = shapeSettings();
+		s.numberOfTicks = 4;
+		s.amountPerRow = 8;
+		s.shapeSize = 10;
+		s.horizontalSpacing = -4;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		assertPosition(overlay.ticks.get(3), 3 * 6, 0);
+		assertEquals(3 * 6 + 10, size.width);
+	}
+
+	/**
+	 * Spacing below the negative cell size would invert the pitch, walking the ticks
+	 * backwards out of a negative reported width. Regression test for issue #6.
+	 */
+	@Test
+	public void spacingBeyondTheCellSizeClampsToFullOverlap()
+	{
+		TickSettings s = shapeSettings();
+		s.numberOfTicks = 8;
+		s.amountPerRow = 8;
+		s.shapeSize = 32;
+		s.horizontalSpacing = -50;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		for (Tick tick : overlay.ticks)
+		{
+			assertPosition(tick, 0, 0);
+		}
+		assertEquals(32, size.width);
+	}
+
+	/** The same clamp applies to rows, which are pitched on the cell height. */
+	@Test
+	public void verticalSpacingBeyondTheCellSizeClampsToFullOverlap()
+	{
+		TickSettings s = shapeSettings();
+		s.numberOfTicks = 4;
+		s.amountPerRow = 2;
+		s.shapeSize = 32;
+		s.horizontalSpacing = 5;
+		s.verticalSpacing = -50;
+		TestOverlay overlay = overlay(s);
+
+		Dimension size = overlay.render(graphics);
+
+		assertPosition(overlay.ticks.get(2), 0, 0);
+		assertEquals(32, size.height);
+	}
+
 	private static void assertPosition(Tick tick, int x, int y)
 	{
 		assertEquals(x, tick.shapeX);
