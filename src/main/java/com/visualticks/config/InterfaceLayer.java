@@ -4,6 +4,10 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.ui.overlay.OverlayLayer;
 
+/**
+ * Whether a tick set draws above or behind game interfaces.
+ * Constant names are stored user data; see {@link com.visualticks.VisualTicksConfig}.
+ */
 @RequiredArgsConstructor
 @Getter
 public enum InterfaceLayer

@@ -23,6 +23,25 @@ import javax.inject.Inject;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 
+import static com.visualticks.VisualTicksConfig.MAX_TICKS;
+import static com.visualticks.VisualTicksConfig.MIN_TICKS;
+
+/**
+ * Owns the per-set tick counters and the overlays that draw them, and handles the reset
+ * and adjust hotkeys.
+ *
+ * <p>Thread map, so new state is guarded for the threads that actually touch it:
+ * <ul>
+ *   <li>client thread: {@code onGameTick} and overlay rendering;</li>
+ *   <li>Swing EDT: {@code startUp}/{@code shutDown}, key events and config panel edits;</li>
+ *   <li>any thread: {@code onConfigChanged} and {@code onProfileChanged} run on whichever
+ *       thread wrote the config or switched profile. Hotkey and panel writes both post
+ *       {@code ConfigChanged} from the Swing EDT.</li>
+ * </ul>
+ * Only the first group runs on the client thread, so anything the others share with
+ * {@code onGameTick} or rendering must hop through {@link ClientThread} or be safe to
+ * publish across threads.
+ */
 @PluginDescriptor(
     name = "Visual Ticks"
 )
@@ -46,26 +65,25 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Inject
     private Client client;
 
-    public final int[] ticks = new int[3];
-
     /**
-     * Matches the {@code @Range} on every {@code numberOfTicksN}, which the hotkeys have
-     * to enforce themselves — {@code setConfiguration} stores whatever it is handed.
+     * Current tick per tick set: the index is the tick set, the value is its 0-based current
+     * tick. Drawn labels are 1-based, so counter 0 shows as "1".
      */
-    private static final int MIN_TICKS = 2;
-    private static final int MAX_TICKS = 30;
+    public final int[] counters = new int[3];
 
-    private static final String[] SUFFIXES = {"One", "Two", "Three"};
+    private static final String[] TICK_SET_SUFFIXES = {"One", "Two", "Three"};
 
     /**
      * Bit per tick set: which sets the decrease hotkey hid. Without it a global increase
      * would switch on sets the user deliberately left disabled, instead of only undoing
      * its own work.
      *
-     * <p>Written from {@code keyPressed} on the AWT thread and cleared from
-     * {@code updateOverlays}, which also runs on the client thread from {@code startUp} —
-     * hence volatile. The bit updates are read-modify-write rather than atomic; the cost
-     * of losing that race is one revive that does not happen, so a lock would buy nothing.
+     * <p>Written from {@code keyPressed} on the Swing EDT, and cleared in
+     * {@code startUp} (Swing EDT), {@code onProfileChanged} (whichever thread switched profile)
+     * and {@code updateOverlays} (whichever thread posted the {@code ConfigChanged}) —
+     * never on the client thread, but on more than one thread, hence volatile. The bit
+     * updates are read-modify-write rather than atomic; the cost of losing that race is one
+     * revive that does not happen, so a lock would buy nothing.
      *
      * <p>Deliberately not persisted: it lives for the session only, and is cleared on
      * startup and on profile change so a claim from one profile can never revive a set in
@@ -95,14 +113,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         // @Range only constrains the settings slider; ConfigManager hands back a stored
         // value unvalidated, so a hand-edited or synced profile can carry 0 here and
         // divide by zero on every tick. Clamp at the divide. See issue #7.
-        if (config.isEnabledOne()) {
-            ticks[0] = (ticks[0] + 1) % Math.max(1, config.numberOfTicksOne());
-        }
-        if (config.isEnabledTwo()) {
-            ticks[1] = (ticks[1] + 1) % Math.max(1, config.numberOfTicksTwo());
-        }
-        if (config.isEnabledThree()) {
-            ticks[2] = (ticks[2] + 1) % Math.max(1, config.numberOfTicksThree());
+        for (int i = 0; i < counters.length; i++) {
+            if (isEnabled(i)) {
+                counters[i] = (counters[i] + 1) % Math.max(1, numberOfTicks(i));
+            }
         }
     }
 
@@ -129,7 +143,6 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     private void updateOverlays() {
         BaseVisualTicksOverlay[] overlays = overlays();
-        boolean[] enabled = {config.isEnabledOne(), config.isEnabledTwo(), config.isEnabledThree()};
 
         int enabledMask = 0;
 
@@ -139,7 +152,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
             // remove/add cycle here is what makes a layer change take effect. Set on every
             // set, enabled or not, so one enabled later is added on the right layer.
             overlays[i].setLayer(interfaceLayer(i).getOverlayLayer());
-            if (enabled[i]) {
+            if (isEnabled(i)) {
                 overlayManager.add(overlays[i]);
                 enabledMask |= 1 << i;
             }
@@ -163,9 +176,9 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (config.tickResetHotkey().matches(e)) {
-            // keyPressed runs on the AWT thread; ticks is otherwise only touched
+            // keyPressed runs on the Swing EDT; counters is otherwise only touched
             // by onGameTick and overlay rendering, both on the client thread.
-            clientThread.invoke(() -> Arrays.fill(ticks, 0));
+            clientThread.invoke(() -> Arrays.fill(counters, 0));
             return;
         }
 
@@ -187,7 +200,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
             return;
         }
 
-        for (int i = 0; i < SUFFIXES.length; i++) {
+        for (int i = 0; i < TICK_SET_SUFFIXES.length; i++) {
             if (increaseHotkey(i).matches(e)) {
                 adjust(i, 1, true);
                 e.consume();
@@ -215,23 +228,24 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     }
 
     private void adjustAll(int delta) {
-        for (int i = 0; i < SUFFIXES.length; i++) {
+        for (int i = 0; i < TICK_SET_SUFFIXES.length; i++) {
             adjust(i, delta, false);
         }
     }
 
     /**
-     * Moves one tick set by {@code delta}, hiding it below {@link #MIN_TICKS} and bringing
-     * it back at {@link #MIN_TICKS}. Config is the source of truth, so every change is
-     * written back through {@link ConfigManager} and reaches the overlays as a
-     * {@link ConfigChanged}.
+     * Moves one tick set by {@code delta}, hiding it when a decrease would take it below
+     * {@link VisualTicksConfig#MIN_TICKS}. An increase on a hidden set shows it again at its stored count,
+     * raised to {@link VisualTicksConfig#MIN_TICKS} only if it is stored below that. Config is the source of
+     * truth, so every change is written back through {@link ConfigManager} and reaches
+     * the overlays as a {@link ConfigChanged}.
      *
      * @param targeted whether a per-set hotkey aimed at this set specifically, which
      *                 revives it however it came to be disabled. A global increase revives
      *                 only what the global decrease hid.
      */
     private void adjust(int index, int delta, boolean targeted) {
-        String suffix = SUFFIXES[index];
+        String suffix = TICK_SET_SUFFIXES[index];
         int bit = 1 << index;
 
         if (!isEnabled(index)) {
@@ -269,16 +283,23 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         configManager.setConfiguration(VisualTicksConfig.GROUP_NAME, key, value);
     }
 
-    // Read through the config proxy, never ConfigManager: only the proxy resolves
-    // @ConfigItem defaults for keys the user has never touched.
+    // Per-set lookups. Read through the typed proxy getters rather than
+    // ConfigManager.getConfiguration by string key: the compiler checks every getter name,
+    // and nothing has to parse a stored string back into an int, enum or Keybind. The proxy
+    // also resolves the @ConfigItem default for a key not yet in the store.
+    //
+    // Each switch names all three sets and throws on anything else, so a fourth set fails
+    // the first time it is used instead of silently reading set Three's config.
     private boolean isEnabled(int index) {
         switch (index) {
             case 0:
                 return config.isEnabledOne();
             case 1:
                 return config.isEnabledTwo();
-            default:
+            case 2:
                 return config.isEnabledThree();
+            default:
+                throw new IllegalArgumentException("no tick set " + index);
         }
     }
 
@@ -288,8 +309,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
                 return config.numberOfTicksOne();
             case 1:
                 return config.numberOfTicksTwo();
-            default:
+            case 2:
                 return config.numberOfTicksThree();
+            default:
+                throw new IllegalArgumentException("no tick set " + index);
         }
     }
 
@@ -299,8 +322,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
                 return config.interfaceLayerOne();
             case 1:
                 return config.interfaceLayerTwo();
-            default:
+            case 2:
                 return config.interfaceLayerThree();
+            default:
+                throw new IllegalArgumentException("no tick set " + index);
         }
     }
 
@@ -310,8 +335,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
                 return config.increaseHotkeyOne();
             case 1:
                 return config.increaseHotkeyTwo();
-            default:
+            case 2:
                 return config.increaseHotkeyThree();
+            default:
+                throw new IllegalArgumentException("no tick set " + index);
         }
     }
 
@@ -321,8 +348,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
                 return config.decreaseHotkeyOne();
             case 1:
                 return config.decreaseHotkeyTwo();
-            default:
+            case 2:
                 return config.decreaseHotkeyThree();
+            default:
+                throw new IllegalArgumentException("no tick set " + index);
         }
     }
 
@@ -330,6 +359,19 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     public void keyReleased(KeyEvent e) {
     }
 
+    /**
+     * Splits each legacy single-padding key into the horizontal and vertical spacing pair
+     * that replaced it, then unsets it. The legacy keys were written by builds before commit
+     * {@code 3083e66}, which split padding into two axes. Set One's legacy key is
+     * {@code paddingBetweenTicksOne} rather than {@code tickPaddingOne} because set One
+     * predates multi-set support; the names are history and must match what was stored.
+     *
+     * <p>Runs on {@code startUp} and again on {@code ProfileChanged}, because a profile
+     * switch loads a different set of stored keys that may still hold a legacy one.
+     *
+     * <p>Can be removed once no supported install can still hold a pre-{@code 3083e66}
+     * profile; a user who skips past that removal silently falls back to default spacing.
+     */
     private void migrate() {
         String[][] moves = {
                 {"paddingBetweenTicksOne", "horizontalSpacingOne", "verticalSpacingOne"},

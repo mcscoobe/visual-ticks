@@ -1,7 +1,6 @@
 package com.visualticks;
 
 import com.visualticks.config.InterfaceTab;
-import com.visualticks.config.Tick;
 import com.visualticks.config.TickSettings;
 import com.visualticks.config.TickShape;
 import net.runelite.api.Client;
@@ -66,12 +65,12 @@ public class BaseVisualTicksOverlayTest
 
 		overlay.render(graphics);
 
-		assertEquals(5, overlay.ticks.size());
-		assertPosition(overlay.ticks.get(0), 0, 0);
-		assertPosition(overlay.ticks.get(1), 15, 0);
-		assertPosition(overlay.ticks.get(2), 30, 0);
-		assertPosition(overlay.ticks.get(3), 0, 15);
-		assertPosition(overlay.ticks.get(4), 15, 15);
+		assertEquals(5, overlay.positions.size());
+		assertPosition(overlay.positions.get(0), 0, 0);
+		assertPosition(overlay.positions.get(1), 15, 0);
+		assertPosition(overlay.positions.get(2), 30, 0);
+		assertPosition(overlay.positions.get(3), 0, 15);
+		assertPosition(overlay.positions.get(4), 15, 15);
 	}
 
 	@Test
@@ -119,10 +118,10 @@ public class BaseVisualTicksOverlayTest
 		overlay.render(graphics);
 
 		// cell is max(shapeSize 10, textWidth 8, ascent 9) = 10
-		Tick first = overlay.ticks.get(0);
+		TickPosition first = overlay.positions.get(0);
 		assertEquals((10 - TEXT_WIDTH) / 2, first.fontX);
 		assertEquals((10 + TEXT_ASCENT) / 2, first.fontY);
-		assertEquals(15 + (10 - TEXT_WIDTH) / 2, overlay.ticks.get(1).fontX);
+		assertEquals(15 + (10 - TEXT_WIDTH) / 2, overlay.positions.get(1).fontX);
 	}
 
 	@Test
@@ -166,7 +165,7 @@ public class BaseVisualTicksOverlayTest
 		// with the 10px shape centred in it (inset 3)
 		for (int i = 0; i < 10; i++)
 		{
-			assertEquals(i * 21 + 3, overlay.ticks.get(i).shapeX);
+			assertEquals(i * 21 + 3, overlay.positions.get(i).shapeX);
 		}
 		// and the reported width is that same pitch, so it matches the drawn content
 		assertEquals(10 * 21 - 5, size.width);
@@ -189,10 +188,10 @@ public class BaseVisualTicksOverlayTest
 		overlay.render(graphics);
 
 		// cell is 16 wide: "1" (8 wide) insets by 4, "10" (16 wide) fills it
-		assertEquals((16 - 8) / 2, overlay.ticks.get(0).fontX);
-		assertEquals(9 * 21, overlay.ticks.get(9).fontX);
+		assertEquals((16 - 8) / 2, overlay.positions.get(0).fontX);
+		assertEquals(9 * 21, overlay.positions.get(9).fontX);
 		// but only 10 tall - the baseline follows the height, not the label width
-		assertEquals((10 + TEXT_ASCENT) / 2, overlay.ticks.get(0).fontY);
+		assertEquals((10 + TEXT_ASCENT) / 2, overlay.positions.get(0).fontY);
 	}
 
 	/**
@@ -218,12 +217,12 @@ public class BaseVisualTicksOverlayTest
 
 		// widest label is "10".."12" at 16, so cells are 16 wide (21px column pitch,
 		// shape inset 3) and 10 tall (15px row pitch)
-		assertPosition(overlay.ticks.get(0), 3, 0);
-		assertPosition(overlay.ticks.get(4), 4 * 21 + 3, 0);
+		assertPosition(overlay.positions.get(0), 3, 0);
+		assertPosition(overlay.positions.get(4), 4 * 21 + 3, 0);
 		// row 2 starts back at the same x even though it holds the two-digit labels
-		assertPosition(overlay.ticks.get(5), 3, 15);
-		assertPosition(overlay.ticks.get(9), 4 * 21 + 3, 15);
-		assertPosition(overlay.ticks.get(11), 21 + 3, 2 * 15);
+		assertPosition(overlay.positions.get(5), 3, 15);
+		assertPosition(overlay.positions.get(9), 4 * 21 + 3, 15);
+		assertPosition(overlay.positions.get(11), 21 + 3, 2 * 15);
 		assertEquals(new Dimension(5 * 21 - 5, 3 * 15 - 5), size);
 	}
 
@@ -245,8 +244,8 @@ public class BaseVisualTicksOverlayTest
 		Dimension size = overlay.render(graphics);
 
 		// cell is the widest label (16), not the shape size, and still uniform
-		assertEquals((16 - 8) / 2, overlay.ticks.get(0).fontX);
-		assertEquals(9 * 21, overlay.ticks.get(9).fontX);
+		assertEquals((16 - 8) / 2, overlay.positions.get(0).fontX);
+		assertEquals(9 * 21, overlay.positions.get(9).fontX);
 		assertEquals(10 * 21 - 5, size.width);
 		// nothing but the ascent sets the height when there is no shape
 		assertEquals(TEXT_ASCENT, size.height);
@@ -272,9 +271,9 @@ public class BaseVisualTicksOverlayTest
 		// height is max(shape 10, ascent 30) = 30; width stays max(shape 10, label 8) = 10
 		assertEquals(new Dimension(2 * 15 - 5, 30), size);
 		// the tall cell centres the shape vertically rather than stranding it at the top
-		assertPosition(overlay.ticks.get(1), 15, (30 - 10) / 2);
-		assertEquals((10 - TEXT_WIDTH) / 2, overlay.ticks.get(0).fontX);
-		assertEquals((30 + 30) / 2, overlay.ticks.get(0).fontY);
+		assertPosition(overlay.positions.get(1), 15, (30 - 10) / 2);
+		assertEquals((10 - TEXT_WIDTH) / 2, overlay.positions.get(0).fontX);
+		assertEquals((30 + 30) / 2, overlay.positions.get(0).fontY);
 	}
 
 	/**
@@ -298,8 +297,8 @@ public class BaseVisualTicksOverlayTest
 
 		// the 40px "2" sits in the middle, yet every cell is 40 wide at a 45px pitch,
 		// with the 10px shape centred in it (inset 15)
-		assertEquals(45 + 15, overlay.ticks.get(1).shapeX);
-		assertEquals(2 * 45 + 15, overlay.ticks.get(2).shapeX);
+		assertEquals(45 + 15, overlay.positions.get(1).shapeX);
+		assertEquals(2 * 45 + 15, overlay.positions.get(2).shapeX);
 		assertEquals(3 * 45 - 5, size.width);
 	}
 
@@ -325,15 +324,15 @@ public class BaseVisualTicksOverlayTest
 
 		for (int i = 0; i < 10; i++)
 		{
-			Tick tick = overlay.ticks.get(i);
+			TickPosition position = overlay.positions.get(i);
 			int labelWidth = TEXT_WIDTH * String.valueOf(i + 1).length();
 			assertEquals(
 				"tick " + (i + 1) + " label is off-centre from its shape",
-				tick.shapeX + s.shapeSize / 2,
-				tick.fontX + labelWidth / 2);
+				position.shapeX + s.shapeSize / 2,
+				position.fontX + labelWidth / 2);
 			// and the label sits within the shape vertically rather than hanging below it
-			assertTrue(tick.fontY - TEXT_ASCENT >= tick.shapeY);
-			assertTrue(tick.fontY <= tick.shapeY + s.shapeSize);
+			assertTrue(position.fontY - TEXT_ASCENT >= position.shapeY);
+			assertTrue(position.fontY <= position.shapeY + s.shapeSize);
 		}
 	}
 
@@ -359,7 +358,7 @@ public class BaseVisualTicksOverlayTest
 		// while the row pitch and the height are untouched
 		assertEquals(singleDigit.height, twoDigit.height);
 		assertEquals(2 * 15 - 5, twoDigit.height);
-		assertEquals(15, wide.ticks.get(5).shapeY);
+		assertEquals(15, wide.positions.get(5).shapeY);
 	}
 
 	private static TickSettings varyingLabelSettings(int numberOfTicks)
@@ -506,7 +505,7 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		assertPosition(overlay.ticks.get(3), 3 * 6, 0);
+		assertPosition(overlay.positions.get(3), 3 * 6, 0);
 		assertEquals(3 * 6 + 10, size.width);
 	}
 
@@ -526,9 +525,9 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		for (Tick tick : overlay.ticks)
+		for (TickPosition position : overlay.positions)
 		{
-			assertPosition(tick, 0, 0);
+			assertPosition(position, 0, 0);
 		}
 		assertEquals(32, size.width);
 	}
@@ -547,7 +546,7 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		assertPosition(overlay.ticks.get(2), 0, 0);
+		assertPosition(overlay.positions.get(2), 0, 0);
 		assertEquals(32, size.height);
 	}
 
@@ -569,9 +568,9 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		assertPosition(overlay.ticks.get(0), 0, 0);
-		assertPosition(overlay.ticks.get(1), 0, 15);
-		assertPosition(overlay.ticks.get(2), 0, 30);
+		assertPosition(overlay.positions.get(0), 0, 0);
+		assertPosition(overlay.positions.get(1), 0, 15);
+		assertPosition(overlay.positions.get(2), 0, 30);
 		assertEquals(new Dimension(10, 40), size);
 	}
 
@@ -586,15 +585,15 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		assertTrue(overlay.ticks.isEmpty());
+		assertTrue(overlay.positions.isEmpty());
 		assertEquals(new Dimension(0, 0), size);
 		verify(graphics, never()).fillRect(anyInt(), anyInt(), anyInt(), anyInt());
 	}
 
-	private static void assertPosition(Tick tick, int x, int y)
+	private static void assertPosition(TickPosition position, int x, int y)
 	{
-		assertEquals(x, tick.shapeX);
-		assertEquals(y, tick.shapeY);
+		assertEquals(x, position.shapeX);
+		assertEquals(y, position.shapeY);
 	}
 
 	private TestOverlay overlay(TickSettings settings)

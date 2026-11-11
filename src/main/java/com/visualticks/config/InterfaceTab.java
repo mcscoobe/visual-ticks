@@ -28,11 +28,19 @@ package com.visualticks.config;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Side-panel tab a tick set can be restricted to. Constant names are stored user data (see
+ * {@link com.visualticks.VisualTicksConfig}), which is why {@link #FILIST} keeps its odd
+ * name.
+ *
+ * <p>Declaration order is dropdown order, not index order, which is why {@code FILIST(9)}
+ * comes before {@code ACCOUNT(8)}.
+ */
 @RequiredArgsConstructor
 @Getter
 public enum InterfaceTab
 {
-    ALL("All", -1),
+    ALL("All", Constants.ANY_TAB),
     COMBAT_OPTIONS("Combat", 0),
     SKILLS("Skills", 1),
     QUEST("Quest", 2),
@@ -49,7 +57,22 @@ public enum InterfaceTab
     MUSIC_PLAYER("Music", 13);
 
     private final String name;
+    /**
+     * The value RuneLite's {@code TOPLEVEL_PANEL} varc holds while this tab is open, or
+     * {@link Constants#ANY_TAB} for {@link #ALL}, which matches any tab.
+     */
     private final int index;
+
+    public boolean matchesAnyTab()
+    {
+        return index == Constants.ANY_TAB;
+    }
+
+    // Nested because enum constants come first, and they can't forward-reference a static field of their own enum by simple name.
+    private static final class Constants
+    {
+        static final int ANY_TAB = -1;
+    }
 
     @Override
     public String toString()

@@ -1,7 +1,6 @@
 package com.visualticks;
 
 import com.google.inject.Inject;
-import com.visualticks.config.Tick;
 import com.visualticks.config.TickSettings;
 import net.runelite.api.Client;
 import net.runelite.api.gameval.VarClientID;
@@ -15,14 +14,23 @@ import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Lays out and draws one tick set. Subclasses supply only which counter and which
+ * settings factory they use.
+ *
+ * <p>Subclass names are persisted: RuneLite's {@code Overlay.getName()} returns the simple
+ * class name, and the overlay manager saves each overlay's dragged screen position under
+ * keys prefixed with it. Renaming {@code VisualTicksOverlayOne/Two/Three} silently resets
+ * every user's layout. {@code OverlayWiringTest} pins the names.
+ */
 public abstract class BaseVisualTicksOverlay extends Overlay
 {
     protected VisualTicksPlugin plugin;
     protected VisualTicksConfig config;
     protected Client client;
     protected volatile boolean configChanged = true;
-    protected TickSettings s;
-    protected final List<Tick> ticks = new ArrayList<>();
+    protected TickSettings settings;
+    protected final List<TickPosition> positions = new ArrayList<>();
     protected final Dimension dimension = new Dimension();
 
     @Inject
@@ -39,20 +47,21 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     }
 
     protected abstract TickSettings readSettings();
+    /** This set's 0-based counter; the label drawn for tick {@code i} is {@code i + 1}. */
     protected abstract int getCurrentTick();
 
     protected void calculateSizes(Graphics2D g) {
-        ticks.clear();
+        positions.clear();
 
         // Nothing to draw, so claim no space: the maths below seeds maxCol/maxRow at 0 and
         // would report a phantom one-cell box for OverlayManager to reserve and snap to.
-        if (s.numberOfTicks <= 0) {
+        if (settings.numberOfTicks <= 0) {
             dimension.setSize(0, 0);
             return;
         }
 
         Font originalFont = g.getFont();
-        g.setFont(originalFont.deriveFont((float) s.textSize));
+        g.setFont(originalFont.deriveFont((float) settings.textSize));
         FontMetrics fm = g.getFontMetrics();
 
         int textHeight = fm.getAscent();
@@ -64,11 +73,11 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         // Width and height are tracked apart because only width varies with the label:
         // folding the widest label into the height too would push the rows away from
         // each other for a purely horizontal reason.
-        int cellWidth = s.showShape ? s.shapeSize : 0;
+        int cellWidth = settings.showShape ? settings.shapeSize : 0;
         int cellHeight = cellWidth;
-        if (s.showText) {
+        if (settings.showText) {
             cellHeight = Math.max(cellHeight, textHeight);
-            for (int i = 0; i < s.numberOfTicks; i++) {
+            for (int i = 0; i < settings.numberOfTicks; i++) {
                 cellWidth = Math.max(cellWidth, fm.stringWidth(String.valueOf(i + 1)));
             }
         }
@@ -76,41 +85,43 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         // Negative spacing legitimately tightens the layout, but below -cell it inverts the
         // pitch: each tick would sit left of / above the last, marching out of the reported
         // bounds and driving the Dimension negative. Clamp at total overlap. See issue #6.
-        int horizontalSpacing = Math.max(s.horizontalSpacing, -cellWidth);
-        int verticalSpacing = Math.max(s.verticalSpacing, -cellHeight);
+        int horizontalSpacing = Math.max(settings.horizontalSpacing, -cellWidth);
+        int verticalSpacing = Math.max(settings.verticalSpacing, -cellHeight);
 
         // A stored config value can sit outside its @Range — ConfigManager returns it
         // unvalidated — so amountPerRow may be 0 and divide by zero below. See issue #7.
-        int amountPerRow = Math.max(1, s.amountPerRow);
+        int amountPerRow = Math.max(1, settings.amountPerRow);
 
         // The cell is sized for the widest label, so a corner-anchored shape would sit
         // adrift from the number it carries. Centre it in the cell the label centres in.
-        int shapeInsetX = s.showShape ? (cellWidth - s.shapeSize) / 2 : 0;
-        int shapeInsetY = s.showShape ? (cellHeight - s.shapeSize) / 2 : 0;
+        int shapeInsetX = settings.showShape ? (cellWidth - settings.shapeSize) / 2 : 0;
+        int shapeInsetY = settings.showShape ? (cellHeight - settings.shapeSize) / 2 : 0;
 
         int maxCol = 0;
         int maxRow = 0;
 
-        for (int i = 0; i < s.numberOfTicks; i++)
+        for (int i = 0; i < settings.numberOfTicks; i++)
         {
             int row = i / amountPerRow;
             int col = i % amountPerRow;
             int x = col * (cellWidth + horizontalSpacing);
             int y = row * (cellHeight + verticalSpacing);
 
-            Tick tick = new Tick(x + shapeInsetX, y + shapeInsetY);
+            TickPosition position = new TickPosition(x + shapeInsetX, y + shapeInsetY);
 
-            if (s.showText) {
+            if (settings.showText) {
                 int textWidth = fm.stringWidth(String.valueOf(i + 1));
-                tick.fontX = x + (cellWidth - textWidth) / 2;
-                tick.fontY = y + (cellHeight + textHeight) / 2;
+                position.fontX = x + (cellWidth - textWidth) / 2;
+                position.fontY = y + (cellHeight + textHeight) / 2;
             }
-            ticks.add(tick);
+            positions.add(position);
 
             maxRow = Math.max(maxRow, row);
             maxCol = Math.max(maxCol, col);
         }
 
+        // n cells have n - 1 gaps between them: drop the spacing after the last column and
+        // row so the reported box ends where the drawing does.
         dimension.width = (maxCol + 1) * (cellWidth + horizontalSpacing) - horizontalSpacing;
         dimension.height = (maxRow + 1) * (cellHeight + verticalSpacing) - verticalSpacing;
 
@@ -123,7 +134,7 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         if(configChanged) {
             configChanged = false;
             try {
-                s = readSettings();
+                settings = readSettings();
                 calculateSizes(graphics);
             } catch (RuntimeException ex) {
                 // Retry next frame rather than latching a transient failure forever.
@@ -132,32 +143,31 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             }
         }
 
-        if(s.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != s.exclusiveTab.getIndex()) return null;
-        if(ticks.size() < s.numberOfTicks) return null;
+        if(!settings.exclusiveTab.matchesAnyTab() && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != settings.exclusiveTab.getIndex()) return null;
 
         Font originalFont = graphics.getFont();
-        graphics.setFont(graphics.getFont().deriveFont((float) s.textSize));
+        graphics.setFont(graphics.getFont().deriveFont((float) settings.textSize));
 
-        for (int i = 0; i < s.numberOfTicks; i++)
+        for (int i = 0; i < settings.numberOfTicks; i++)
         {
-            Tick tick = ticks.get(i);
-            if (s.showShape) {
-                graphics.setColor(i == getCurrentTick() ? s.currentTickColour : s.tickColour);
-                switch(s.shape) {
+            TickPosition position = positions.get(i);
+            if (settings.showShape) {
+                graphics.setColor(i == getCurrentTick() ? settings.currentTickColour : settings.tickColour);
+                switch(settings.shape) {
                     case SQUARE:
-                        graphics.fillRect(tick.shapeX, tick.shapeY, s.shapeSize, s.shapeSize);
+                        graphics.fillRect(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize);
                         break;
                     case CIRCLE:
-                        graphics.fillOval(tick.shapeX, tick.shapeY, s.shapeSize, s.shapeSize);
+                        graphics.fillOval(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize);
                         break;
                     case ROUNDED_SQUARE:
-                        graphics.fillRoundRect(tick.shapeX, tick.shapeY, s.shapeSize, s.shapeSize, s.arc, s.arc);
+                        graphics.fillRoundRect(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize, settings.arc, settings.arc);
                         break;
                 }
             }
-            if (s.showText) {
-                graphics.setColor(i == getCurrentTick() ? s.currentTextColour : s.textColour);
-                graphics.drawString(String.valueOf(i + 1), tick.fontX, tick.fontY);
+            if (settings.showText) {
+                graphics.setColor(i == getCurrentTick() ? settings.currentTextColour : settings.textColour);
+                graphics.drawString(String.valueOf(i + 1), position.fontX, position.fontY);
             }
         }
 

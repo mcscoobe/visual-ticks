@@ -5,6 +5,10 @@ import net.runelite.api.Client;
 
 import javax.inject.Inject;
 
+/**
+ * Do not rename: the class name is this overlay's persisted position key. See
+ * {@link BaseVisualTicksOverlay}.
+ */
 public class VisualTicksOverlayTwo extends BaseVisualTicksOverlay
 {
     @Inject
@@ -20,6 +24,6 @@ public class VisualTicksOverlayTwo extends BaseVisualTicksOverlay
 
     @Override
     protected int getCurrentTick() {
-        return plugin.ticks[1];
+        return plugin.counters[1];
     }
 }

@@ -136,7 +136,7 @@ public class VisualTicksPluginLogicTest
 	{
 		gameTicks(1);
 
-		assertArrayEquals(new int[]{1, 1, 1}, plugin.ticks);
+		assertArrayEquals(new int[]{1, 1, 1}, plugin.counters);
 	}
 
 	@Test
@@ -145,7 +145,7 @@ public class VisualTicksPluginLogicTest
 		gameTicks(4);
 
 		// 4 % 2 == 0, 4 % 3 == 1, 4 % 4 == 0
-		assertArrayEquals(new int[]{0, 1, 0}, plugin.ticks);
+		assertArrayEquals(new int[]{0, 1, 0}, plugin.counters);
 	}
 
 	/**
@@ -161,7 +161,7 @@ public class VisualTicksPluginLogicTest
 
 		gameTicks(3);
 
-		assertArrayEquals(new int[]{0, 0, 3}, plugin.ticks);
+		assertArrayEquals(new int[]{0, 0, 3}, plugin.counters);
 	}
 
 	@Test
@@ -171,7 +171,7 @@ public class VisualTicksPluginLogicTest
 
 		gameTicks(3);
 
-		assertArrayEquals(new int[]{1, 0, 3}, plugin.ticks);
+		assertArrayEquals(new int[]{1, 0, 3}, plugin.counters);
 	}
 
 	@Test
@@ -316,7 +316,7 @@ public class VisualTicksPluginLogicTest
 
 		plugin.keyPressed(keyEvent());
 
-		assertArrayEquals(new int[]{0, 0, 0}, plugin.ticks);
+		assertArrayEquals(new int[]{0, 0, 0}, plugin.counters);
 	}
 
 	/** The counters are only safe to touch on the client thread. */
@@ -338,7 +338,7 @@ public class VisualTicksPluginLogicTest
 
 		plugin.keyPressed(keyEvent());
 
-		assertArrayEquals(new int[]{1, 1, 1}, plugin.ticks);
+		assertArrayEquals(new int[]{1, 1, 1}, plugin.counters);
 		verify(clientThread, never()).invoke(any(Runnable.class));
 	}
 
@@ -513,7 +513,7 @@ public class VisualTicksPluginLogicTest
 
 		plugin.keyPressed(keyEvent());
 
-		assertArrayEquals(new int[]{0, 0, 0}, plugin.ticks);
+		assertArrayEquals(new int[]{0, 0, 0}, plugin.counters);
 	}
 
 	/** So a bound key doesn't both adjust the counter and type itself into the chatbox. */

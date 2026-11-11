@@ -24,9 +24,9 @@ public class OverlayWiringTest
 	@Before
 	public void setUp()
 	{
-		plugin.ticks[0] = 5;
-		plugin.ticks[1] = 6;
-		plugin.ticks[2] = 7;
+		plugin.counters[0] = 5;
+		plugin.counters[1] = 6;
+		plugin.counters[2] = 7;
 	}
 
 	@Test
@@ -47,5 +47,14 @@ public class OverlayWiringTest
 		assertEquals(11, new VisualTicksOverlayOne(plugin, config, null).readSettings().numberOfTicks);
 		assertEquals(22, new VisualTicksOverlayTwo(plugin, config, null).readSettings().numberOfTicks);
 		assertEquals(33, new VisualTicksOverlayThree(plugin, config, null).readSettings().numberOfTicks);
+	}
+
+	@Test
+	public void overlayNamesAreThePersistedPositionKeys()
+	{
+		String rule = "overlay name is the persisted position key — renaming the class resets user layouts";
+		assertEquals(rule, "VisualTicksOverlayOne", new VisualTicksOverlayOne(plugin, config, null).getName());
+		assertEquals(rule, "VisualTicksOverlayTwo", new VisualTicksOverlayTwo(plugin, config, null).getName());
+		assertEquals(rule, "VisualTicksOverlayThree", new VisualTicksOverlayThree(plugin, config, null).getName());
 	}
 }
