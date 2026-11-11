@@ -1,5 +1,6 @@
 package com.visualticks;
 import com.visualticks.config.HotkeyMode;
+import com.visualticks.config.InterfaceLayer;
 import com.visualticks.config.InterfaceTab;
 import com.visualticks.config.TickShape;
 import net.runelite.client.config.*;
@@ -118,11 +119,24 @@ public interface VisualTicksConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "interfaceLayerOne",
+            name = "Interface layer",
+            description = "Draw the ticks above or behind interfaces such as the bank. Behind also draws"
+                    + " under hitsplats, HP bars and overhead text, and in Fixed mode clips the ticks to"
+                    + " the game view, so a set over the chatbox or side panel disappears",
+            section = tickSettings,
+            position = 4
+    )
+    default InterfaceLayer interfaceLayerOne() {
+        return InterfaceLayer.ABOVE;
+    }
+
+    @ConfigItem(
             keyName = "numberOfTicksOne",
             name = "Number of ticks",
             description = "Number of tick circles to display",
             section = tickSettings,
-            position = 4
+            position = 5
     )
     @Range(min = 2, max = 30)
     default int numberOfTicksOne() {
@@ -134,7 +148,7 @@ public interface VisualTicksConfig extends Config {
             name = "Amount per row",
             description = "How many ticks to display per row",
             section = tickSettings,
-            position = 5
+            position = 6
     )
     @Range(min = 1)
     default int amountPerRowOne() {
@@ -146,7 +160,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick colour",
             description = "The colour of the ticks",
             section = tickSettings,
-            position = 6
+            position = 7
     )
     @Alpha
     default Color tickColourOne() {
@@ -158,7 +172,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick colour",
             description = "The colour of the current tick",
             section = tickSettings,
-            position = 7
+            position = 8
     )
     @Alpha
     default Color currentTickColourOne() {
@@ -170,7 +184,7 @@ public interface VisualTicksConfig extends Config {
             name = "Size of ticks",
             description = "How many pixels to make the tick shapes",
             section = tickSettings,
-            position = 8
+            position = 9
     )
     default int sizeOfTickShapesOne() {
         return 32;
@@ -181,7 +195,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick arc(rounded square)",
             description = "The arc of the corners of the rounded square tick shape",
             section = tickSettings,
-            position = 9
+            position = 10
     )
     @Range(max = 100)
     default int tickArcOne() {
@@ -193,7 +207,7 @@ public interface VisualTicksConfig extends Config {
             name = "Show text",
             description = "Show the text of the current tick",
             section = tickSettings,
-            position = 10
+            position = 11
     )
     default boolean shouldShowTextOne() {
         return true;
@@ -204,7 +218,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text size",
             description = "The size of the text on the ticks",
             section = tickSettings,
-            position = 11
+            position = 12
     )
     @Range(min = 1, max = 100)
     default int tickTextSizeOne() {
@@ -216,7 +230,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text colour",
             description = "The colour of the text non-current ticks",
             section = tickSettings,
-            position = 12
+            position = 13
     )
     @Alpha
     default Color tickTextColourOne() {
@@ -228,7 +242,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick text colour",
             description = "The colour of the text on the current tick",
             section = tickSettings,
-            position = 13
+            position = 14
     )
     @Alpha
     default Color currentTickTextColourOne() {
@@ -240,7 +254,7 @@ public interface VisualTicksConfig extends Config {
             name = "Horizontal spacing",
             description = "The amount of space between ticks on the x-axis",
             section = tickSettings,
-            position = 14
+            position = 15
     )
     @Range(min = -50)
     default int horizontalSpacingOne() {
@@ -252,7 +266,7 @@ public interface VisualTicksConfig extends Config {
             name = "Vertical spacing",
             description = "The amount of space between ticks on the y-axis",
             section = tickSettings,
-            position = 15
+            position = 16
     )
     @Range(min = -50)
     default int verticalSpacingOne() {
@@ -264,7 +278,7 @@ public interface VisualTicksConfig extends Config {
             name = "Increase Hotkey",
             description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettings,
-            position = 16
+            position = 17
     )
     default Keybind increaseHotkeyOne() {
         return Keybind.NOT_SET;
@@ -276,7 +290,7 @@ public interface VisualTicksConfig extends Config {
             description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettings,
-            position = 17
+            position = 18
     )
     default Keybind decreaseHotkeyOne() {
         return Keybind.NOT_SET;
@@ -336,11 +350,24 @@ public interface VisualTicksConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "interfaceLayerTwo",
+            name = "Interface layer",
+            description = "Draw the ticks above or behind interfaces such as the bank. Behind also draws"
+                    + " under hitsplats, HP bars and overhead text, and in Fixed mode clips the ticks to"
+                    + " the game view, so a set over the chatbox or side panel disappears",
+            section = tickSettingsTwo,
+            position = 4
+    )
+    default InterfaceLayer interfaceLayerTwo() {
+        return InterfaceLayer.ABOVE;
+    }
+
+    @ConfigItem(
             keyName = "numberOfTicksTwo",
             name = "Number of ticks",
             description = "Number of tick circles to display",
             section = tickSettingsTwo,
-            position = 4
+            position = 5
     )
     @Range(min = 2, max = 30)
     default int numberOfTicksTwo() {
@@ -352,7 +379,7 @@ public interface VisualTicksConfig extends Config {
             name = "Amount per row",
             description = "How many ticks to display per row",
             section = tickSettingsTwo,
-            position = 5
+            position = 6
     )
     @Range(min = 1)
     default int amountPerRowTwo() {
@@ -364,7 +391,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick colour",
             description = "The colour of the ticks",
             section = tickSettingsTwo,
-            position = 6
+            position = 7
     )
     @Alpha
     default Color tickColourTwo() {
@@ -376,7 +403,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick colour",
             description = "The colour of the current tick",
             section = tickSettingsTwo,
-            position = 7
+            position = 8
     )
     @Alpha
     default Color currentTickColourTwo() {
@@ -388,7 +415,7 @@ public interface VisualTicksConfig extends Config {
             name = "Size of ticks",
             description = "How many pixels to make the tick shapes",
             section = tickSettingsTwo,
-            position = 8
+            position = 9
     )
     default int sizeOfTickShapesTwo() {
         return 32;
@@ -399,7 +426,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick arc(rounded square)",
             description = "The arc of the corners of the rounded square tick shape",
             section = tickSettingsTwo,
-            position = 9
+            position = 10
     )
     @Range(max = 100)
     default int tickArcTwo() {
@@ -411,7 +438,7 @@ public interface VisualTicksConfig extends Config {
             name = "Show text",
             description = "Show the text of the current tick",
             section = tickSettingsTwo,
-            position = 10
+            position = 11
     )
     default boolean shouldShowTextTwo() {
         return true;
@@ -422,7 +449,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text size",
             description = "The size of the text on the ticks",
             section = tickSettingsTwo,
-            position = 11
+            position = 12
     )
     @Range(min = 1, max = 100)
     default int tickTextSizeTwo() {
@@ -434,7 +461,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text colour",
             description = "The colour of the text non-current ticks",
             section = tickSettingsTwo,
-            position = 12
+            position = 13
     )
     @Alpha
     default Color tickTextColourTwo() {
@@ -446,7 +473,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick text colour",
             description = "The colour of the text on the current tick",
             section = tickSettingsTwo,
-            position = 13
+            position = 14
     )
     @Alpha
     default Color currentTickTextColourTwo() {
@@ -458,7 +485,7 @@ public interface VisualTicksConfig extends Config {
             name = "Horizontal spacing",
             description = "The amount of space between ticks on the x-axis",
             section = tickSettingsTwo,
-            position = 14
+            position = 15
     )
     @Range(min = -50)
     default int horizontalSpacingTwo() {
@@ -470,7 +497,7 @@ public interface VisualTicksConfig extends Config {
             name = "Vertical spacing",
             description = "The amount of space between ticks on the y-axis",
             section = tickSettingsTwo,
-            position = 15
+            position = 16
     )
     @Range(min = -50)
     default int verticalSpacingTwo() {
@@ -482,7 +509,7 @@ public interface VisualTicksConfig extends Config {
             name = "Increase Hotkey",
             description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsTwo,
-            position = 16
+            position = 17
     )
     default Keybind increaseHotkeyTwo() {
         return Keybind.NOT_SET;
@@ -494,7 +521,7 @@ public interface VisualTicksConfig extends Config {
             description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsTwo,
-            position = 17
+            position = 18
     )
     default Keybind decreaseHotkeyTwo() {
         return Keybind.NOT_SET;
@@ -554,11 +581,24 @@ public interface VisualTicksConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "interfaceLayerThree",
+            name = "Interface layer",
+            description = "Draw the ticks above or behind interfaces such as the bank. Behind also draws"
+                    + " under hitsplats, HP bars and overhead text, and in Fixed mode clips the ticks to"
+                    + " the game view, so a set over the chatbox or side panel disappears",
+            section = tickSettingsThree,
+            position = 4
+    )
+    default InterfaceLayer interfaceLayerThree() {
+        return InterfaceLayer.ABOVE;
+    }
+
+    @ConfigItem(
             keyName = "numberOfTicksThree",
             name = "Number of ticks",
             description = "Number of tick circles to display",
             section = tickSettingsThree,
-            position = 4
+            position = 5
     )
     @Range(min = 2, max = 30)
     default int numberOfTicksThree() {
@@ -570,7 +610,7 @@ public interface VisualTicksConfig extends Config {
             name = "Amount per row",
             description = "How many ticks to display per row",
             section = tickSettingsThree,
-            position = 5
+            position = 6
     )
     @Range(min = 1)
     default int amountPerRowThree() {
@@ -582,7 +622,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick colour",
             description = "The colour of the ticks",
             section = tickSettingsThree,
-            position = 6
+            position = 7
     )
     @Alpha
     default Color tickColourThree() {
@@ -594,7 +634,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick colour",
             description = "The colour of the current tick",
             section = tickSettingsThree,
-            position = 7
+            position = 8
     )
     @Alpha
     default Color currentTickColourThree() {
@@ -606,7 +646,7 @@ public interface VisualTicksConfig extends Config {
             name = "Size of ticks",
             description = "How many pixels to make the tick shapes",
             section = tickSettingsThree,
-            position = 8
+            position = 9
     )
     default int sizeOfTickShapesThree() {
         return 32;
@@ -617,7 +657,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick arc(rounded square)",
             description = "The arc of the corners of the rounded square tick shape",
             section = tickSettingsThree,
-            position = 9
+            position = 10
     )
     @Range(max = 100)
     default int tickArcThree() {
@@ -629,7 +669,7 @@ public interface VisualTicksConfig extends Config {
             name = "Show text",
             description = "Show the text of the current tick",
             section = tickSettingsThree,
-            position = 10
+            position = 11
     )
     default boolean shouldShowTextThree() {
         return true;
@@ -640,7 +680,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text size",
             description = "The size of the text on the ticks",
             section = tickSettingsThree,
-            position = 11
+            position = 12
     )
     @Range(min = 1, max = 100)
     default int tickTextSizeThree() {
@@ -652,7 +692,7 @@ public interface VisualTicksConfig extends Config {
             name = "Tick text colour",
             description = "The colour of the text non-current ticks",
             section = tickSettingsThree,
-            position = 12
+            position = 13
     )
     @Alpha
     default Color tickTextColourThree() {
@@ -664,7 +704,7 @@ public interface VisualTicksConfig extends Config {
             name = "Current tick text colour",
             description = "The colour of the text on the current tick",
             section = tickSettingsThree,
-            position = 13
+            position = 14
     )
     @Alpha
     default Color currentTickTextColourThree() {
@@ -676,7 +716,7 @@ public interface VisualTicksConfig extends Config {
             name = "Horizontal spacing",
             description = "The amount of space between ticks on the x-axis",
             section = tickSettingsThree,
-            position = 14
+            position = 15
     )
     @Range(min = -50)
     default int horizontalSpacingThree() {
@@ -688,7 +728,7 @@ public interface VisualTicksConfig extends Config {
             name = "Vertical spacing",
             description = "The amount of space between ticks on the y-axis",
             section = tickSettingsThree,
-            position = 15
+            position = 16
     )
     @Range(min = -50)
     default int verticalSpacingThree() {
@@ -700,7 +740,7 @@ public interface VisualTicksConfig extends Config {
             name = "Increase Hotkey",
             description = "Hotkey to add a tick to this set. Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsThree,
-            position = 16
+            position = 17
     )
     default Keybind increaseHotkeyThree() {
         return Keybind.NOT_SET;
@@ -712,7 +752,7 @@ public interface VisualTicksConfig extends Config {
             description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsThree,
-            position = 17
+            position = 18
     )
     default Keybind decreaseHotkeyThree() {
         return Keybind.NOT_SET;
