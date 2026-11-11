@@ -47,6 +47,7 @@ public abstract class BaseVisualTicksOverlay extends Overlay
     }
 
     protected abstract TickSettings readSettings();
+    /** This set's 0-based counter; the label drawn for tick {@code i} is {@code i + 1}. */
     protected abstract int getCurrentTick();
 
     protected void calculateSizes(Graphics2D g) {
@@ -106,14 +107,14 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             int x = col * (cellWidth + horizontalSpacing);
             int y = row * (cellHeight + verticalSpacing);
 
-            TickPosition tick = new TickPosition(x + shapeInsetX, y + shapeInsetY);
+            TickPosition position = new TickPosition(x + shapeInsetX, y + shapeInsetY);
 
             if (settings.showText) {
                 int textWidth = fm.stringWidth(String.valueOf(i + 1));
-                tick.fontX = x + (cellWidth - textWidth) / 2;
-                tick.fontY = y + (cellHeight + textHeight) / 2;
+                position.fontX = x + (cellWidth - textWidth) / 2;
+                position.fontY = y + (cellHeight + textHeight) / 2;
             }
-            positions.add(tick);
+            positions.add(position);
 
             maxRow = Math.max(maxRow, row);
             maxCol = Math.max(maxCol, col);
@@ -149,24 +150,24 @@ public abstract class BaseVisualTicksOverlay extends Overlay
 
         for (int i = 0; i < settings.numberOfTicks; i++)
         {
-            TickPosition tick = positions.get(i);
+            TickPosition position = positions.get(i);
             if (settings.showShape) {
                 graphics.setColor(i == getCurrentTick() ? settings.currentTickColour : settings.tickColour);
                 switch(settings.shape) {
                     case SQUARE:
-                        graphics.fillRect(tick.shapeX, tick.shapeY, settings.shapeSize, settings.shapeSize);
+                        graphics.fillRect(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize);
                         break;
                     case CIRCLE:
-                        graphics.fillOval(tick.shapeX, tick.shapeY, settings.shapeSize, settings.shapeSize);
+                        graphics.fillOval(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize);
                         break;
                     case ROUNDED_SQUARE:
-                        graphics.fillRoundRect(tick.shapeX, tick.shapeY, settings.shapeSize, settings.shapeSize, settings.arc, settings.arc);
+                        graphics.fillRoundRect(position.shapeX, position.shapeY, settings.shapeSize, settings.shapeSize, settings.arc, settings.arc);
                         break;
                 }
             }
             if (settings.showText) {
                 graphics.setColor(i == getCurrentTick() ? settings.currentTextColour : settings.textColour);
-                graphics.drawString(String.valueOf(i + 1), tick.fontX, tick.fontY);
+                graphics.drawString(String.valueOf(i + 1), position.fontX, position.fontY);
             }
         }
 

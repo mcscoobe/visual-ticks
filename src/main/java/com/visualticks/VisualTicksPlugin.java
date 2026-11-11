@@ -35,8 +35,8 @@ import static com.visualticks.VisualTicksConfig.MIN_TICKS;
  *   <li>client thread: {@code onGameTick} and overlay rendering;</li>
  *   <li>Swing EDT: {@code startUp}/{@code shutDown}, key events and config panel edits;</li>
  *   <li>any thread: {@code onConfigChanged} and {@code onProfileChanged} run on whichever
- *       thread wrote the config or switched profile — a hotkey's write posts
- *       {@code ConfigChanged} from the key event thread, a panel edit from the EDT.</li>
+ *       thread wrote the config or switched profile. Hotkey and panel writes both post
+ *       {@code ConfigChanged} from the Swing EDT.</li>
  * </ul>
  * Only the first group runs on the client thread, so anything the others share with
  * {@code onGameTick} or rendering must hop through {@link ClientThread} or be safe to
@@ -65,7 +65,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Inject
     private Client client;
 
-    /** Current tick per tick set: the index is the tick set, the value is its 0-based current tick. */
+    /**
+     * Current tick per tick set: the index is the tick set, the value is its 0-based current
+     * tick. Drawn labels are 1-based, so counter 0 shows as "1".
+     */
     public final int[] counters = new int[3];
 
     private static final String[] TICK_SET_SUFFIXES = {"One", "Two", "Three"};
@@ -75,8 +78,8 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
      * would switch on sets the user deliberately left disabled, instead of only undoing
      * its own work.
      *
-     * <p>Written from {@code keyPressed} on the key event thread, and cleared in
-     * {@code startUp} (EDT), {@code onProfileChanged} (whichever thread switched profile)
+     * <p>Written from {@code keyPressed} on the Swing EDT, and cleared in
+     * {@code startUp} (Swing EDT), {@code onProfileChanged} (whichever thread switched profile)
      * and {@code updateOverlays} (whichever thread posted the {@code ConfigChanged}) —
      * never on the client thread, but on more than one thread, hence volatile. The bit
      * updates are read-modify-write rather than atomic; the cost of losing that race is one
@@ -173,7 +176,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (config.tickResetHotkey().matches(e)) {
-            // keyPressed runs on the AWT thread; counters is otherwise only touched
+            // keyPressed runs on the Swing EDT; counters is otherwise only touched
             // by onGameTick and overlay rendering, both on the client thread.
             clientThread.invoke(() -> Arrays.fill(counters, 0));
             return;

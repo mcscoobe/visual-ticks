@@ -32,8 +32,12 @@ of `BaseVisualTicksOverlay` (overlay class names), and `migrate()` in `VisualTic
 
 ## Code style
 
-Indentation differs by area; keep each file as it is: `src/main` uses 4 spaces, `src/test`
-and `build.gradle` use tabs.
+- Indentation is inconsistent by area and each file should stay as it is: `src/main` uses
+  4 spaces, `src/test` and `build.gradle` use tabs. Brace style also varies by file (same-line
+  or next-line); match the file you're editing.
+- Comments say why, not what. Several exist only to stop a future reader "simplifying" a
+  deliberate deviation; `TickSettings`'s class javadoc is the model to follow when one needs
+  explaining.
 
 ## Git
 
@@ -42,15 +46,15 @@ General branching/commit/PR rules live in the user-level `CLAUDE.md`. Project sp
 - The default branch is **`master`**, not `main` — rebase with
   `git fetch origin && git rebase origin/master`.
 - Branch names carry the issue number when one exists:
-  `fix/5-tick-columns-misalign-when-labels-diff`. Older defect branches used `bug/`; use
-  `fix/` for new ones.
+  `bug/5-tick-columns-misalign-when-labels-diff`. Note this repo has used `bug/` for
+  defect branches where the global convention says `fix/`; prefer `fix/` for new ones.
 - Squash-merged commits keep the PR number in the subject:
   `test: add unit test suite for plugin, overlay and settings (#9)`.
-- This repo is worked on through **git worktrees** sharing one `.git`. Check
-  `git worktree list` before assuming which branch is checked out where, and keep off bare
-  `git stash`/`git stash pop` — the stash stack is shared.
-- Build output from `./gradlew test` appears in every checkout and is gitignored; stage
-  source only.
+- This repo is worked on through **git worktrees** (`visual-ticks` and the checkouts under
+  `visual-ticks.worktrees/` share one `.git`). Check `git worktree list` before assuming
+  which branch is checked out where, and never use bare `git stash`/`git stash pop` — the stash stack is shared.
+- `.gitignore` already covers `.gradle`, `build`, and editor config. Build output appears
+  in every checkout after `./gradlew test`; it should never be staged.
 
 ## User-facing text
 
@@ -84,4 +88,4 @@ Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-f
 
 ### Domain docs
 
-Single-context. No `GLOSSARY.md` or `docs/adr/` exists yet; `/domain-modeling` creates them when a term or decision is first resolved. See `docs/agents/domain.md`.
+Single-context; the class names and javadoc carry the domain vocabulary. See `docs/agents/domain.md`.

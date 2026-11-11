@@ -324,15 +324,15 @@ public class BaseVisualTicksOverlayTest
 
 		for (int i = 0; i < 10; i++)
 		{
-			TickPosition tick = overlay.positions.get(i);
+			TickPosition position = overlay.positions.get(i);
 			int labelWidth = TEXT_WIDTH * String.valueOf(i + 1).length();
 			assertEquals(
 				"tick " + (i + 1) + " label is off-centre from its shape",
-				tick.shapeX + s.shapeSize / 2,
-				tick.fontX + labelWidth / 2);
+				position.shapeX + s.shapeSize / 2,
+				position.fontX + labelWidth / 2);
 			// and the label sits within the shape vertically rather than hanging below it
-			assertTrue(tick.fontY - TEXT_ASCENT >= tick.shapeY);
-			assertTrue(tick.fontY <= tick.shapeY + s.shapeSize);
+			assertTrue(position.fontY - TEXT_ASCENT >= position.shapeY);
+			assertTrue(position.fontY <= position.shapeY + s.shapeSize);
 		}
 	}
 
@@ -525,9 +525,9 @@ public class BaseVisualTicksOverlayTest
 
 		Dimension size = overlay.render(graphics);
 
-		for (TickPosition tick : overlay.positions)
+		for (TickPosition position : overlay.positions)
 		{
-			assertPosition(tick, 0, 0);
+			assertPosition(position, 0, 0);
 		}
 		assertEquals(32, size.width);
 	}
@@ -590,10 +590,10 @@ public class BaseVisualTicksOverlayTest
 		verify(graphics, never()).fillRect(anyInt(), anyInt(), anyInt(), anyInt());
 	}
 
-	private static void assertPosition(TickPosition tick, int x, int y)
+	private static void assertPosition(TickPosition position, int x, int y)
 	{
-		assertEquals(x, tick.shapeX);
-		assertEquals(y, tick.shapeY);
+		assertEquals(x, position.shapeX);
+		assertEquals(y, position.shapeY);
 	}
 
 	private TestOverlay overlay(TickSettings settings)

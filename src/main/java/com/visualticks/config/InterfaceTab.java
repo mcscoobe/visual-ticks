@@ -29,9 +29,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Side-panel tab a tick set can be restricted to. RuneLite stores a chosen value by its constant name and reads it back with {@code valueOf},
- * so renaming a constant resets that setting for every user who picked it. That is why
- * {@link #FILIST} keeps its odd name.
+ * Side-panel tab a tick set can be restricted to. Constant names are stored user data (see
+ * {@link com.visualticks.VisualTicksConfig}), which is why {@link #FILIST} keeps its odd
+ * name.
  *
  * <p>Declaration order is dropdown order, not index order, which is why {@code FILIST(9)}
  * comes before {@code ACCOUNT(8)}.
@@ -40,7 +40,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum InterfaceTab
 {
-    ALL("All", -1),
+    ALL("All", Constants.ANY_TAB),
     COMBAT_OPTIONS("Combat", 0),
     SKILLS("Skills", 1),
     QUEST("Quest", 2),
@@ -59,13 +59,19 @@ public enum InterfaceTab
     private final String name;
     /**
      * The value RuneLite's {@code TOPLEVEL_PANEL} varc holds while this tab is open, or
-     * {@code -1} for {@link #ALL}, which matches any tab.
+     * {@link Constants#ANY_TAB} for {@link #ALL}, which matches any tab.
      */
     private final int index;
 
     public boolean matchesAnyTab()
     {
-        return index == -1;
+        return index == Constants.ANY_TAB;
+    }
+
+    // Nested because enum constants come first, and they can't forward-reference a static field of their own enum by simple name.
+    private static final class Constants
+    {
+        static final int ANY_TAB = -1;
     }
 
     @Override

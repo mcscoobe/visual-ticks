@@ -11,9 +11,15 @@ import java.awt.event.KeyEvent;
  * Every setting of the plugin, in config group {@value #GROUP_NAME}.
  *
  * <p><b>Key names are stored user data.</b> RuneLite saves each value under its
- * {@code @ConfigItem} {@code keyName}, and saves an enum value under its constant name, so
- * renaming either silently resets that setting for every user. Treat section keys the same
- * way. Each {@code keyName} equals its method name, which the plugin relies on when it
+ * {@code @ConfigItem} {@code keyName}, so renaming one silently resets that setting for
+ * every user. Treat section keys the same way.
+ *
+ * <p><b>Enum constant names are stored user data too.</b> RuneLite stores a chosen enum
+ * value by its constant name and reads it back with {@code valueOf}, so renaming a constant
+ * resets that setting for every user who picked it. This covers every enum in
+ * {@code com.visualticks.config} that a setting returns.
+ *
+ * <p>Each {@code keyName} equals its method name, which the plugin relies on when it
  * builds keys like {@code "numberOfTicks" + suffix}; {@code ConfigConventionsTest}
  * enforces that.
  *
@@ -29,10 +35,12 @@ public interface VisualTicksConfig extends Config {
     String GROUP_NAME = "visualticks";
 
     /**
-     * Bounds of every {@code numberOfTicksN}. {@code @Range} only bounds the panel slider,
-     * so the adjust hotkeys enforce the same bounds themselves from these constants.
+     * Lower bound of every {@code numberOfTicksN}. {@code @Range} only bounds the panel
+     * slider, so the adjust hotkeys enforce the same bound themselves from this constant.
      */
     int MIN_TICKS = 2;
+
+    /** Upper bound of every {@code numberOfTicksN}, enforced the same way as {@link #MIN_TICKS}. */
     int MAX_TICKS = 30;
 
     //region Hotkey Settings
@@ -100,7 +108,8 @@ public interface VisualTicksConfig extends Config {
             position = 1
     )
     // No "One" suffix: set One predates multi-set support and kept its original key.
-    // Leave it unsuffixed rather than normalising it, in case RuneLite stores section state.
+    // Whether RuneLite persists section state (such as collapsed) under this key is
+    // unverified, so treat the key as persisted and leave it unsuffixed.
     String tickSettings = "tickSettings";
 
     @ConfigItem(
