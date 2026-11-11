@@ -2,6 +2,7 @@ package com.visualticks;
 
 import com.google.inject.Provides;
 import com.visualticks.config.HotkeyMode;
+import com.visualticks.config.InterfaceLayer;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.gameval.VarClientID;
@@ -134,6 +135,10 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
         for (int i = 0; i < overlays.length; i++) {
             overlayManager.remove(overlays[i]);
+            // OverlayManager applies a layer only when add() rebuilds its layer map, so the
+            // remove/add cycle here is what makes a layer change take effect. Set on every
+            // set, enabled or not, so one enabled later is added on the right layer.
+            overlays[i].setLayer(interfaceLayer(i).getOverlayLayer());
             if (enabled[i]) {
                 overlayManager.add(overlays[i]);
                 enabledMask |= 1 << i;
@@ -285,6 +290,17 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
                 return config.numberOfTicksTwo();
             default:
                 return config.numberOfTicksThree();
+        }
+    }
+
+    private InterfaceLayer interfaceLayer(int index) {
+        switch (index) {
+            case 0:
+                return config.interfaceLayerOne();
+            case 1:
+                return config.interfaceLayerTwo();
+            default:
+                return config.interfaceLayerThree();
         }
     }
 

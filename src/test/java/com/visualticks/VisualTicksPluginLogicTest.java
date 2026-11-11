@@ -1,6 +1,7 @@
 package com.visualticks;
 
 import com.visualticks.config.HotkeyMode;
+import com.visualticks.config.InterfaceLayer;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.gameval.VarClientID;
@@ -12,6 +13,7 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.input.KeyManager;
+import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -108,6 +110,10 @@ public class VisualTicksPluginLogicTest
 		when(config.decreaseHotkeyTwo()).thenReturn(decreaseTwo);
 		when(config.increaseHotkeyThree()).thenReturn(increaseThree);
 		when(config.decreaseHotkeyThree()).thenReturn(decreaseThree);
+		// A mock returns null where the real config proxy falls back to the @ConfigItem default.
+		when(config.interfaceLayerOne()).thenCallRealMethod();
+		when(config.interfaceLayerTwo()).thenCallRealMethod();
+		when(config.interfaceLayerThree()).thenCallRealMethod();
 
 		// Run scheduled work inline so hotkey handling is observable.
 		doAnswer(invocation ->
@@ -188,6 +194,94 @@ public class VisualTicksPluginLogicTest
 		verify(overlayTwo).onConfigChanged();
 		verify(overlayThree).onConfigChanged();
 		verify(keyManager).registerKeyListener(plugin);
+	}
+
+	@Test
+	public void aboveInterfacesDrawsAboveWidgets() throws Exception
+	{
+		when(config.interfaceLayerOne()).thenReturn(InterfaceLayer.ABOVE);
+
+		plugin.startUp();
+
+		verify(overlayOne).setLayer(OverlayLayer.ABOVE_WIDGETS);
+	}
+
+	@Test
+	public void behindInterfacesDrawsAboveTheSceneNotUnderWidgets() throws Exception
+	{
+		// UNDER_WIDGETS would be promoted back above interfaces for any dragged overlay.
+		when(config.interfaceLayerOne()).thenReturn(InterfaceLayer.BEHIND);
+
+		plugin.startUp();
+
+		verify(overlayOne).setLayer(OverlayLayer.ABOVE_SCENE);
+	}
+
+	@Test
+	public void eachSetDrawsOnItsOwnLayer() throws Exception
+	{
+		when(config.interfaceLayerOne()).thenReturn(InterfaceLayer.BEHIND);
+		when(config.interfaceLayerTwo()).thenReturn(InterfaceLayer.ABOVE);
+		when(config.interfaceLayerThree()).thenReturn(InterfaceLayer.BEHIND);
+
+		plugin.startUp();
+
+		verify(overlayOne).setLayer(OverlayLayer.ABOVE_SCENE);
+		verify(overlayTwo).setLayer(OverlayLayer.ABOVE_WIDGETS);
+		verify(overlayThree).setLayer(OverlayLayer.ABOVE_SCENE);
+	}
+
+	@Test
+	public void theLayerIsSetBeforeTheOverlayIsAdded() throws Exception
+	{
+		// OverlayManager only reads the layer when add rebuilds its layer map, so a
+		// layer set afterwards would not apply until the next refresh.
+		plugin.startUp();
+
+		for (BaseVisualTicksOverlay overlay : new BaseVisualTicksOverlay[]{overlayOne, overlayTwo, overlayThree})
+		{
+			InOrder inOrder = inOrder(overlay, overlayManager);
+			inOrder.verify(overlay).setLayer(any(OverlayLayer.class));
+			inOrder.verify(overlayManager).add(overlay);
+		}
+	}
+
+	@Test
+	public void aDisabledSetStillGetsItsLayer() throws Exception
+	{
+		// So it is added on the right layer when it is enabled later.
+		when(config.isEnabledTwo()).thenReturn(false);
+		when(config.interfaceLayerTwo()).thenReturn(InterfaceLayer.BEHIND);
+
+		plugin.startUp();
+
+		verify(overlayTwo).setLayer(OverlayLayer.ABOVE_SCENE);
+	}
+
+	@Test
+	public void theDefaultDrawsAboveInterfaces() throws Exception
+	{
+		plugin.startUp();
+
+		verify(overlayOne).setLayer(OverlayLayer.ABOVE_WIDGETS);
+		verify(overlayTwo).setLayer(OverlayLayer.ABOVE_WIDGETS);
+		verify(overlayThree).setLayer(OverlayLayer.ABOVE_WIDGETS);
+	}
+
+	@Test
+	public void aLayerChangeAppliesWithoutARestart() throws Exception
+	{
+		plugin.startUp();
+		when(config.interfaceLayerTwo()).thenReturn(InterfaceLayer.BEHIND);
+
+		ConfigChanged event = new ConfigChanged();
+		event.setGroup(VisualTicksConfig.GROUP_NAME);
+		event.setKey("interfaceLayerTwo");
+		eventBus.post(event);
+
+		InOrder inOrder = inOrder(overlayTwo, overlayManager);
+		inOrder.verify(overlayTwo).setLayer(OverlayLayer.ABOVE_SCENE);
+		inOrder.verify(overlayManager).add(overlayTwo);
 	}
 
 	@Test
