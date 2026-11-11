@@ -20,6 +20,6 @@ public class VisualTicksOverlayTwo extends BaseVisualTicksOverlay
 
     @Override
     protected int getCurrentTick() {
-        return plugin.ticks[1];
+        return plugin.counters[1];
     }
 }

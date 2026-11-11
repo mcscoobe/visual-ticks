@@ -24,9 +24,9 @@ public class OverlayWiringTest
 	@Before
 	public void setUp()
 	{
-		plugin.ticks[0] = 5;
-		plugin.ticks[1] = 6;
-		plugin.ticks[2] = 7;
+		plugin.counters[0] = 5;
+		plugin.counters[1] = 6;
+		plugin.counters[2] = 7;
 	}
 
 	@Test

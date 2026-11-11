@@ -46,7 +46,8 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Inject
     private Client client;
 
-    public final int[] ticks = new int[3];
+    /** Current tick per tick set: the index is the tick set, the value is its 0-based current tick. */
+    public final int[] counters = new int[3];
 
     /**
      * Matches the {@code @Range} on every {@code numberOfTicksN}, which the hotkeys have
@@ -55,7 +56,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     private static final int MIN_TICKS = 2;
     private static final int MAX_TICKS = 30;
 
-    private static final String[] SUFFIXES = {"One", "Two", "Three"};
+    private static final String[] TICK_SET_SUFFIXES = {"One", "Two", "Three"};
 
     /**
      * Bit per tick set: which sets the decrease hotkey hid. Without it a global increase
@@ -96,13 +97,13 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
         // value unvalidated, so a hand-edited or synced profile can carry 0 here and
         // divide by zero on every tick. Clamp at the divide. See issue #7.
         if (config.isEnabledOne()) {
-            ticks[0] = (ticks[0] + 1) % Math.max(1, config.numberOfTicksOne());
+            counters[0] = (counters[0] + 1) % Math.max(1, config.numberOfTicksOne());
         }
         if (config.isEnabledTwo()) {
-            ticks[1] = (ticks[1] + 1) % Math.max(1, config.numberOfTicksTwo());
+            counters[1] = (counters[1] + 1) % Math.max(1, config.numberOfTicksTwo());
         }
         if (config.isEnabledThree()) {
-            ticks[2] = (ticks[2] + 1) % Math.max(1, config.numberOfTicksThree());
+            counters[2] = (counters[2] + 1) % Math.max(1, config.numberOfTicksThree());
         }
     }
 
@@ -163,9 +164,9 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     @Override
     public void keyPressed(KeyEvent e) {
         if (config.tickResetHotkey().matches(e)) {
-            // keyPressed runs on the AWT thread; ticks is otherwise only touched
+            // keyPressed runs on the AWT thread; counters is otherwise only touched
             // by onGameTick and overlay rendering, both on the client thread.
-            clientThread.invoke(() -> Arrays.fill(ticks, 0));
+            clientThread.invoke(() -> Arrays.fill(counters, 0));
             return;
         }
 
@@ -187,7 +188,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
             return;
         }
 
-        for (int i = 0; i < SUFFIXES.length; i++) {
+        for (int i = 0; i < TICK_SET_SUFFIXES.length; i++) {
             if (increaseHotkey(i).matches(e)) {
                 adjust(i, 1, true);
                 e.consume();
@@ -215,7 +216,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
     }
 
     private void adjustAll(int delta) {
-        for (int i = 0; i < SUFFIXES.length; i++) {
+        for (int i = 0; i < TICK_SET_SUFFIXES.length; i++) {
             adjust(i, delta, false);
         }
     }
@@ -231,7 +232,7 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
      *                 only what the global decrease hid.
      */
     private void adjust(int index, int delta, boolean targeted) {
-        String suffix = SUFFIXES[index];
+        String suffix = TICK_SET_SUFFIXES[index];
         int bit = 1 << index;
 
         if (!isEnabled(index)) {
