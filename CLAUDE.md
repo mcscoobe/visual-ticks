@@ -142,3 +142,17 @@ same PR as the code:
   `src/test`, so the JUnit/Mockito dependencies and `runTestClient` are local-only. Adding
   a real dependency means switching to `build=gradle` and getting it onto the hub's
   verification allow-list.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues on mcscoobe/visual-ticks (via `gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` + `docs/adr/`. See `docs/agents/domain.md`.
