@@ -14,6 +14,15 @@ import java.awt.Graphics2D;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Lays out and draws one tick set. Subclasses supply only which counter and which
+ * settings factory they use.
+ *
+ * <p>Subclass names are persisted: RuneLite's {@code Overlay.getName()} returns the simple
+ * class name, and the overlay manager saves each overlay's dragged screen position under
+ * keys prefixed with it. Renaming {@code VisualTicksOverlayOne/Two/Three} silently resets
+ * every user's layout. {@code OverlayWiringTest} pins the names.
+ */
 public abstract class BaseVisualTicksOverlay extends Overlay
 {
     protected VisualTicksPlugin plugin;
@@ -110,6 +119,8 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             maxCol = Math.max(maxCol, col);
         }
 
+        // n cells have n - 1 gaps between them: drop the spacing after the last column and
+        // row so the reported box ends where the drawing does.
         dimension.width = (maxCol + 1) * (cellWidth + horizontalSpacing) - horizontalSpacing;
         dimension.height = (maxRow + 1) * (cellHeight + verticalSpacing) - verticalSpacing;
 
@@ -132,7 +143,6 @@ public abstract class BaseVisualTicksOverlay extends Overlay
         }
 
         if(!settings.exclusiveTab.matchesAnyTab() && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != settings.exclusiveTab.getIndex()) return null;
-        if(positions.size() < settings.numberOfTicks) return null;
 
         Font originalFont = graphics.getFont();
         graphics.setFont(graphics.getFont().deriveFont((float) settings.textSize));

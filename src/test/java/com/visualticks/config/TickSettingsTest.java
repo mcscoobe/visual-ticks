@@ -83,6 +83,8 @@ public class TickSettingsTest
 		assertEquals(colourFor("currentTickColour" + suffix), s.currentTickColour);
 		assertEquals(colourFor("tickTextColour" + suffix), s.textColour);
 		assertEquals(colourFor("currentTickTextColour" + suffix), s.currentTextColour);
+		assertEquals(shapeFor("tickShape" + suffix), s.shape);
+		assertEquals(tabFor("exclusiveTab" + suffix), s.exclusiveTab);
 		// booleans answer true only for the text toggle, so a swap flips both
 		assertTrue(s.showText);
 		assertTrue(!s.showShape);
@@ -135,11 +137,11 @@ public class TickSettingsTest
 			}
 			if (type == TickShape.class)
 			{
-				return TickShape.CIRCLE;
+				return shapeFor(name);
 			}
 			if (type == InterfaceTab.class)
 			{
-				return InterfaceTab.PRAYER;
+				return tabFor(name);
 			}
 			throw new AssertionError("unhandled return type " + type + " for " + name);
 		};
@@ -157,6 +159,37 @@ public class TickSettingsTest
 	private static synchronized int intFor(String name)
 	{
 		return VALUES.computeIfAbsent(name, ignored -> NEXT_VALUE.getAndIncrement());
+	}
+
+	/**
+	 * Enums have too few constants to be distinct per getter, so they are distinct per
+	 * tick set instead: a factory reading another set's shape or tab lands on the wrong one.
+	 */
+	private static TickShape shapeFor(String name)
+	{
+		return TickShape.values()[setIndex(name)];
+	}
+
+	private static InterfaceTab tabFor(String name)
+	{
+		return InterfaceTab.values()[setIndex(name) + 1];
+	}
+
+	private static int setIndex(String name)
+	{
+		if (name.endsWith("One"))
+		{
+			return 0;
+		}
+		if (name.endsWith("Two"))
+		{
+			return 1;
+		}
+		if (name.endsWith("Three"))
+		{
+			return 2;
+		}
+		throw new AssertionError(name + " has no tick set suffix");
 	}
 
 	private static Color colourFor(String name)

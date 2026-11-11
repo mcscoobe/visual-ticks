@@ -8,10 +8,12 @@ import java.awt.Color;
  * Snapshot of one tick set's config values, taken when the config changes so the
  * render loop reads plain fields instead of proxy calls.
  *
- * <p>The three factories exist because RuneLite resolves {@code @ConfigItem}
- * defaults only through the config proxy — reading keys generically by suffix via
- * {@code ConfigManager.getConfiguration} returns null for anything the user never
- * changed, losing every default.
+ * <p>The three factories are hand-written on purpose. A generic read by key suffix —
+ * reflection, or {@code ConfigManager.getConfiguration} by string — is possible, but it
+ * gives up what the copies buy: every getter name is checked at compile time, and nothing
+ * has to parse a stored string back into a {@code Color} or enum. The copy-paste risk the
+ * duplication brings is what {@code TickSettingsTest} guards. Don't fold them into a
+ * reflective loop.
  */
 public class TickSettings
 {

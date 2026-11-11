@@ -48,4 +48,13 @@ public class OverlayWiringTest
 		assertEquals(22, new VisualTicksOverlayTwo(plugin, config, null).readSettings().numberOfTicks);
 		assertEquals(33, new VisualTicksOverlayThree(plugin, config, null).readSettings().numberOfTicks);
 	}
+
+	@Test
+	public void overlayNamesAreThePersistedPositionKeys()
+	{
+		String rule = "overlay name is the persisted position key — renaming the class resets user layouts";
+		assertEquals(rule, "VisualTicksOverlayOne", new VisualTicksOverlayOne(plugin, config, null).getName());
+		assertEquals(rule, "VisualTicksOverlayTwo", new VisualTicksOverlayTwo(plugin, config, null).getName());
+		assertEquals(rule, "VisualTicksOverlayThree", new VisualTicksOverlayThree(plugin, config, null).getName());
+	}
 }
