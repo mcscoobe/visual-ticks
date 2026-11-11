@@ -16,7 +16,11 @@ and in Fixed mode clips the ticks to the game view.
 Tick counts can be changed without opening the settings, using an increase and a decrease
 hotkey. Set **Tick Adjust Hotkeys** to *Global* for one pair of keys that moves every
 configuration at once, or *Independent* to give each configuration its own pair. Decreasing
-a configuration that is already at 2 ticks hides it; increasing brings it back at 2.
+a configuration that is already at 2 ticks hides it. A configuration's own increase key
+brings it back, even one you turned off in the settings; the global increase brings back only
+the configurations the global decrease hid.
+
+The **Tick Reset Hotkey** (backtick by default) restarts every configuration's count.
 
 Adjust hotkeys are ignored while you are typing, and a key that triggers one is consumed
 rather than passed on to the game. Binding a plain printable key therefore costs you that
