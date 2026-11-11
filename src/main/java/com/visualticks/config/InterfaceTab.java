@@ -28,6 +28,14 @@ package com.visualticks.config;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Side-panel tab a tick set can be restricted to. RuneLite stores a chosen value by its constant name and reads it back with {@code valueOf},
+ * so renaming a constant resets that setting for every user who picked it. That is why
+ * {@link #FILIST} keeps its odd name.
+ *
+ * <p>Declaration order is dropdown order, not index order, which is why {@code FILIST(9)}
+ * comes before {@code ACCOUNT(8)}.
+ */
 @RequiredArgsConstructor
 @Getter
 public enum InterfaceTab
@@ -49,7 +57,16 @@ public enum InterfaceTab
     MUSIC_PLAYER("Music", 13);
 
     private final String name;
+    /**
+     * The value RuneLite's {@code TOPLEVEL_PANEL} varc holds while this tab is open, or
+     * {@code -1} for {@link #ALL}, which matches any tab.
+     */
     private final int index;
+
+    public boolean matchesAnyTab()
+    {
+        return index == -1;
+    }
 
     @Override
     public String toString()

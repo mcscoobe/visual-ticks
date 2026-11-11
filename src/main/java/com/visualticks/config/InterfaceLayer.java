@@ -4,6 +4,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.runelite.client.ui.overlay.OverlayLayer;
 
+/**
+ * Whether a tick set draws above or behind game interfaces.
+ * RuneLite stores a chosen value by its constant name and reads it back with {@code valueOf},
+ * so renaming a constant resets that setting for every user who picked it.
+ */
 @RequiredArgsConstructor
 @Getter
 public enum InterfaceLayer

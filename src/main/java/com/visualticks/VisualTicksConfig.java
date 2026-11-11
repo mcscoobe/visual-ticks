@@ -7,9 +7,33 @@ import net.runelite.client.config.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 
+/**
+ * Every setting of the plugin, in config group {@value #GROUP_NAME}.
+ *
+ * <p><b>Key names are stored user data.</b> RuneLite saves each value under its
+ * {@code @ConfigItem} {@code keyName}, and saves an enum value under its constant name, so
+ * renaming either silently resets that setting for every user. Treat section keys the same
+ * way. Each {@code keyName} equals its method name, which the plugin relies on when it
+ * builds keys like {@code "numberOfTicks" + suffix}; {@code ConfigConventionsTest}
+ * enforces that.
+ *
+ * <p>Layout: one hotkey section, then three tick-set blocks (One, Two, Three). The three
+ * blocks declare the same settings, suffixed {@code One}/{@code Two}/{@code Three}, and
+ * differ only in descriptions, section and the default of {@code isEnabledN} (on for One,
+ * off for Two and Three). A setting added to one block must be added to all three, and to
+ * the matching {@code TickSettings} factory; {@code ConfigConventionsTest} and
+ * {@code TickSettingsTest} fail otherwise.
+ */
 @ConfigGroup(VisualTicksConfig.GROUP_NAME)
 public interface VisualTicksConfig extends Config {
     String GROUP_NAME = "visualticks";
+
+    /**
+     * Bounds of every {@code numberOfTicksN}. {@code @Range} only bounds the panel slider,
+     * so the adjust hotkeys enforce the same bounds themselves from these constants.
+     */
+    int MIN_TICKS = 2;
+    int MAX_TICKS = 30;
 
     //region Hotkey Settings
     @ConfigSection(
@@ -30,6 +54,9 @@ public interface VisualTicksConfig extends Config {
         return new Keybind(KeyEvent.VK_BACK_QUOTE, KeyEvent.VK_UNDEFINED);
     }
 
+    // Both the global pair below and every per-set pair stay visible whichever mode is
+    // picked: @ConfigItem has only a static hidden flag, with no way to hide or disable an
+    // item based on another setting. The mode decides which pair keyPressed honours.
     @ConfigItem(
             position = 1,
             keyName = "tickAdjustHotkeyMode",
@@ -57,7 +84,7 @@ public interface VisualTicksConfig extends Config {
             position = 3,
             keyName = "tickDecreaseHotkey",
             name = "Tick Decrease Hotkey",
-            description = "Hotkey to remove a tick from every set, hiding a set already at 2. "
+            description = "Hotkey to remove a tick from every set, hiding a set already at " + MIN_TICKS + ". "
                     + "Only used when Tick Adjust Hotkeys is Global.",
             section = hotkeySettings
     )
@@ -72,6 +99,8 @@ public interface VisualTicksConfig extends Config {
             description = "Settings for the first set of ticks",
             position = 1
     )
+    // No "One" suffix: set One predates multi-set support and kept its original key.
+    // Leave it unsuffixed rather than normalising it, in case RuneLite stores section state.
     String tickSettings = "tickSettings";
 
     @ConfigItem(
@@ -134,11 +163,11 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "numberOfTicksOne",
             name = "Number of ticks",
-            description = "Number of tick circles to display",
+            description = "Number of ticks to display",
             section = tickSettings,
             position = 5
     )
-    @Range(min = 2, max = 30)
+    @Range(min = MIN_TICKS, max = MAX_TICKS)
     default int numberOfTicksOne() {
         return 2;
     }
@@ -186,6 +215,7 @@ public interface VisualTicksConfig extends Config {
             section = tickSettings,
             position = 9
     )
+    @Range(min = 1)
     default int sizeOfTickShapesOne() {
         return 32;
     }
@@ -205,7 +235,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "shouldShowTextOne",
             name = "Show text",
-            description = "Show the text of the current tick",
+            description = "Show each tick's number on it",
             section = tickSettings,
             position = 11
     )
@@ -228,7 +258,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "tickTextColourOne",
             name = "Tick text colour",
-            description = "The colour of the text non-current ticks",
+            description = "The colour of the text on non-current ticks",
             section = tickSettings,
             position = 13
     )
@@ -287,7 +317,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "decreaseHotkeyOne",
             name = "Decrease Hotkey",
-            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+            description = "Hotkey to remove a tick from this set, hiding it when already at " + MIN_TICKS + ". "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettings,
             position = 18
@@ -365,11 +395,11 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "numberOfTicksTwo",
             name = "Number of ticks",
-            description = "Number of tick circles to display",
+            description = "Number of ticks to display",
             section = tickSettingsTwo,
             position = 5
     )
-    @Range(min = 2, max = 30)
+    @Range(min = MIN_TICKS, max = MAX_TICKS)
     default int numberOfTicksTwo() {
         return 2;
     }
@@ -417,6 +447,7 @@ public interface VisualTicksConfig extends Config {
             section = tickSettingsTwo,
             position = 9
     )
+    @Range(min = 1)
     default int sizeOfTickShapesTwo() {
         return 32;
     }
@@ -436,7 +467,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "shouldShowTextTwo",
             name = "Show text",
-            description = "Show the text of the current tick",
+            description = "Show each tick's number on it",
             section = tickSettingsTwo,
             position = 11
     )
@@ -459,7 +490,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "tickTextColourTwo",
             name = "Tick text colour",
-            description = "The colour of the text non-current ticks",
+            description = "The colour of the text on non-current ticks",
             section = tickSettingsTwo,
             position = 13
     )
@@ -518,7 +549,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "decreaseHotkeyTwo",
             name = "Decrease Hotkey",
-            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+            description = "Hotkey to remove a tick from this set, hiding it when already at " + MIN_TICKS + ". "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsTwo,
             position = 18
@@ -596,11 +627,11 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "numberOfTicksThree",
             name = "Number of ticks",
-            description = "Number of tick circles to display",
+            description = "Number of ticks to display",
             section = tickSettingsThree,
             position = 5
     )
-    @Range(min = 2, max = 30)
+    @Range(min = MIN_TICKS, max = MAX_TICKS)
     default int numberOfTicksThree() {
         return 2;
     }
@@ -648,6 +679,7 @@ public interface VisualTicksConfig extends Config {
             section = tickSettingsThree,
             position = 9
     )
+    @Range(min = 1)
     default int sizeOfTickShapesThree() {
         return 32;
     }
@@ -667,7 +699,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "shouldShowTextThree",
             name = "Show text",
-            description = "Show the text of the current tick",
+            description = "Show each tick's number on it",
             section = tickSettingsThree,
             position = 11
     )
@@ -690,7 +722,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "tickTextColourThree",
             name = "Tick text colour",
-            description = "The colour of the text non-current ticks",
+            description = "The colour of the text on non-current ticks",
             section = tickSettingsThree,
             position = 13
     )
@@ -749,7 +781,7 @@ public interface VisualTicksConfig extends Config {
     @ConfigItem(
             keyName = "decreaseHotkeyThree",
             name = "Decrease Hotkey",
-            description = "Hotkey to remove a tick from this set, hiding it when already at 2. "
+            description = "Hotkey to remove a tick from this set, hiding it when already at " + MIN_TICKS + ". "
                     + "Only used when Tick Adjust Hotkeys is Independent.",
             section = tickSettingsThree,
             position = 18

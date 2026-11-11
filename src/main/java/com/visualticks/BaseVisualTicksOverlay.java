@@ -131,7 +131,7 @@ public abstract class BaseVisualTicksOverlay extends Overlay
             }
         }
 
-        if(settings.exclusiveTab.getIndex() != -1 && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != settings.exclusiveTab.getIndex()) return null;
+        if(!settings.exclusiveTab.matchesAnyTab() && client.getVarcIntValue(VarClientID.TOPLEVEL_PANEL) != settings.exclusiveTab.getIndex()) return null;
         if(positions.size() < settings.numberOfTicks) return null;
 
         Font originalFont = graphics.getFont();

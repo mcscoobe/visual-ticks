@@ -23,6 +23,9 @@ import javax.inject.Inject;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 
+import static com.visualticks.VisualTicksConfig.MAX_TICKS;
+import static com.visualticks.VisualTicksConfig.MIN_TICKS;
+
 @PluginDescriptor(
     name = "Visual Ticks"
 )
@@ -48,13 +51,6 @@ public class VisualTicksPlugin extends Plugin implements KeyListener {
 
     /** Current tick per tick set: the index is the tick set, the value is its 0-based current tick. */
     public final int[] counters = new int[3];
-
-    /**
-     * Matches the {@code @Range} on every {@code numberOfTicksN}, which the hotkeys have
-     * to enforce themselves — {@code setConfiguration} stores whatever it is handed.
-     */
-    private static final int MIN_TICKS = 2;
-    private static final int MAX_TICKS = 30;
 
     private static final String[] TICK_SET_SUFFIXES = {"One", "Two", "Three"};
 
