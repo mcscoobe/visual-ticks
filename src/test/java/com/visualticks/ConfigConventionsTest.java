@@ -151,6 +151,15 @@ public class ConfigConventionsTest
 		when(config.isEnabledTwo()).thenReturn(false);
 		when(config.isEnabledThree()).thenReturn(false);
 		press(increase);
+		// ...then increase again on enabled sets inside the range, which takes the ordinary
+		// step write rather than the revive write: the two build the count key separately.
+		when(config.isEnabledOne()).thenReturn(true);
+		when(config.isEnabledTwo()).thenReturn(true);
+		when(config.isEnabledThree()).thenReturn(true);
+		when(config.numberOfTicksOne()).thenReturn(5);
+		when(config.numberOfTicksTwo()).thenReturn(5);
+		when(config.numberOfTicksThree()).thenReturn(5);
+		press(increase);
 
 		Set<String> declared = new TreeSet<>();
 		for (Method method : configItems())
