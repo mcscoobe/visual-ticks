@@ -7,7 +7,7 @@ optional tab restriction.
 ## Commands
 
 ```bash
-./gradlew test           # unit tests (JUnit 4 + Mockito) — 72 tests, no game client needed
+./gradlew test           # unit tests (JUnit 4 + Mockito) — 79 tests, no game client needed
 ./gradlew build          # compile + test
 ./gradlew runTestClient  # launch RuneLite with this plugin side-loaded (--developer-mode)
 ```
@@ -86,14 +86,19 @@ into the current `horizontalSpacingN`/`verticalSpacingN` pair, then unsets the o
 
 ## Config
 
-`VisualTicksConfig` is a single ~720-line interface, config group `visualticks`, organised
+`VisualTicksConfig` is a single ~760-line interface, config group `visualticks`, organised
 into four sections: `hotkeySettings`, then `tickSettings` / `tickSettingsTwo` /
-`tickSettingsThree`. Keys are suffixed `One`/`Two`/`Three` and every set has the same 18
+`tickSettingsThree`. Keys are suffixed `One`/`Two`/`Three` and every set has the same 19
 items. When adding a setting you must touch all three blocks plus the matching
 `TickSettings` factory — `TickSettingsTest` asserts each factory reads only its own
-suffixed getters and maps every getter to its matching field. The exception is the per-set
-`increaseHotkeyN`/`decreaseHotkeyN` pair: hotkeys are read in `keyPressed`, not while
-rendering, so they stay out of `TickSettings`.
+suffixed getters and maps every getter to its matching field. There are two exceptions,
+both read outside rendering and so kept out of `TickSettings`:
+
+- the per-set `increaseHotkeyN`/`decreaseHotkeyN` pair, read in `keyPressed`;
+- `interfaceLayerN`, read in `updateOverlays` and applied with `setLayer` before
+  `overlayManager.add`. `TickSettings` is rebuilt lazily inside `render`, which is too late:
+  RuneLite only picks up a layer when `add` rebuilds its layer map. "Behind interfaces"
+  maps to `ABOVE_SCENE`, not `UNDER_WIDGETS`, for the reason commented on `InterfaceLayer`.
 
 ## Code style
 
